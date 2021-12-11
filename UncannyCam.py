@@ -37,13 +37,16 @@ class UncannyCam():
             for effect in self.effects:
                 self.img = effect.apply()
 
-            self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
-            cv2.imshow("Image", self.img)
-            #self.cam.send(self.img)
-            #self.cam.sleep_until_next_frame()
-            key = cv2.waitKey(20)
-            if key == 27: # exit on ESC
-                break
+            # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
+            self.cam.send(self.img)
+            self.cam.sleep_until_next_frame()
+
+            # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
+            # cv2.imshow("Image", self.img)
+            # key = cv2.waitKey(20)
+            # if key == 27: # exit on ESC
+            #     break
+        print("main loop terminated")
 
 if __name__ == "__main__":
     uncannyCam = UncannyCam()
