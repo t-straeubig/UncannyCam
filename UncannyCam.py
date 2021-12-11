@@ -37,7 +37,6 @@ class UncannyCam():
             for effect in self.effects:
                 self.img = effect.apply()
 
-            # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
             self.cam.send(self.img)
             self.cam.sleep_until_next_frame()
 
