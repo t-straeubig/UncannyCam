@@ -26,9 +26,9 @@ def findPolygon(lines):
     while len(polygon) <= len(lines)*3:
         for line in lines:
             first, second = line
-            if first == polygon[-1] and first != polygon[-2]:
+            if first == polygon[-1] and second != polygon[-2]:
                 polygon.append(second)
-            elif second == polygon[-1] and second != polygon[-2]:
+            elif second == polygon[-1] and first != polygon[-2]:
                 polygon.append(first)
     
     return polygon
@@ -50,11 +50,20 @@ def drawPolygon(img, polygon):
         cv2.line(img, polygon[i-1], polygon[i], (0, 0, 255), 1)
 
 
-def filterFace(img, polygon):
+def filterPolygon(img, landmarks, outline):
     """Applies a blur filter to the image inside the polygon"""
+    height, width, _ = img.shape
+    polygon = getPolygon(height, width, landmarks, outline)
     blurred = cv2.bilateralFilter(img, 10, 50, 50)
     mask = getMask(img.shape, polygon)
     return np.where(mask==np.array([255,255,255]), blurred, img)
+
+def segmentationFilter(img, mask):
+        background = np.zeros(img.shape, dtype=np.uint8)
+        background[:] = (0,0,0)
+        condition = np.stack((mask,) * 3, axis=-1) > 0.1
+        blurred = cv2.bilateralFilter(img, 10, 50, 50)
+        return np.where(condition, blurred, img)
 
 def drawLandmarks(img, landmarks):
     """Draws points at the landmarks"""
@@ -76,25 +85,3 @@ def drawLines(img, lines):
     for i, j in lines:
         cv2.line(img, i, j, (0,255,00), 1)
 
-def segmentationFilter(img, mask):
-    background = np.zeros(img.shape, dtype=np.uint8)
-    background[:] = (0,0,0)
-    condition = np.stack((mask,) * 3, axis=-1) > 0.1
-    blurred =cv2.bilateralFilter(img, 10, 50, 50)
-    return np.where(condition, blurred, img)
-
-def displace(img, oldImg, mask):
-    background = np.zeros(img.shape, dtype=np.uint8)
-    background[:] = (0,0,0)
-    return np.where(mask == np.array([255,255,255]), oldImg, img)
-
-def getPoints(lines):
-    points = set()
-    for i, j in lines:
-        points.add(i)
-        points.add(j)
-    return points  
-
-# def getTriangles(lines):
-#     points = getPoints(lines)
-#     triangles = []
