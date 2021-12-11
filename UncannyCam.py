@@ -10,13 +10,14 @@ from mediapipe.python.solutions import \
     drawing_utils as mpDraw, \
     face_mesh as mpFaceMesh, \
     selfie_segmentation as mpSelfieSeg
-from effects import Effect, EyeFreezer
+from effects import Effect, EyeFreezer, FaceFilter
 
 
 class UncannyCam():
     def __init__(self) -> None:
+        self.img = None
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        self.effects: List[Effect] = [EyeFreezer(self)]
+        self.effects: List[Effect] = [EyeFreezer(self), FaceFilter(self, 1)]
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=640, height=480, fps=20)

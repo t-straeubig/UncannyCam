@@ -22,11 +22,6 @@ def drawOnFace(img, landmarks, option):
         ut.drawPolygon(img, polygonEye)
     
         
-def filterFace(img, landmarks):
-    height, width, c = img.shape
-    polygonOval = ut.getPolygon(height, width, landmarks, mpFaceMesh.FACEMESH_FACE_OVAL)
-    return ut.filterFace(img, polygonOval)
-
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     startTime = 0
@@ -35,6 +30,9 @@ def main():
     with mpFaceMesh.FaceMesh(refine_landmarks=True) as faceMesh, pyvirtualcam.Camera(width=640, height=480, fps=20) as cam:
         selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         print(f'Using virtual camera: {cam.device}')
+        indices = None
+        test = None
+        testImg = None
         while cap.isOpened():
             success, img = cap.read()
             if not success:
@@ -47,14 +45,20 @@ def main():
             resultsSS = selfieSeg.process(img)
 
             if resultsFM.multi_face_landmarks:
-                if (time.time() - startTime) > 0.1:
+                if indices is None:
+                    triangles = ut.getTriangles(img,  resultsFM.multi_face_landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+                    indices = ut.getTriangleIndices(img, triangles, resultsFM.multi_face_landmarks,  mpFaceMesh.FACEMESH_LEFT_EYE)
+                    
+                if (time.time() - startTime) > 0.2:
                     startTime = time.time()
                     old = img
-                
-                mask = ut.getMask(img.shape, ut.getPolygon(img.shape[0], img.shape[1], resultsFM.multi_face_landmarks, mpFaceMesh.FACEMESH_LEFT_EYE))
-                img = ut.displace(img, old, mask)
+                    oldLM = resultsFM.multi_face_landmarks
 
-                drawOnFace(img, resultsFM.multi_face_landmarks, 'faceContour')
+                trianglesOld = ut.getTrianglesNew(old, oldLM, indices)
+                trianglesNew = ut.getTrianglesNew(img, resultsFM.multi_face_landmarks, indices)
+
+                img = ut.displace(img, old, trianglesNew, trianglesOld) #in ganzem Bild transformen und nur Auge ersetzen
+                #drawOnFace(img, resultsFM.multi_face_landmarks, 'faceContour')
                 # img = filterFace(img, resultsFM.multi_face_landmarks)
                 # img = ut.segmentationFilter(img, resultsSS.segmentation_mask)
             
