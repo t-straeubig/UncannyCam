@@ -18,10 +18,14 @@ class UncannyCam():
         self.img = None
         self.testMode = False
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        self.effects: List[Effect] = [EyeFreezer(self), FaceFilter(self, 1)]
+        width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.effects: List[Effect] = []
+        self.effects.append(EyeFreezer(self))
+        # self.effects.append(FaceFilter(self, 1))
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-        self.cam = pyvirtualcam.Camera(width=640, height=480, fps=20)
+        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f'Using virtual camera: {self.cam.device}')
 
     

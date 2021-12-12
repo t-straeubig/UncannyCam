@@ -24,9 +24,8 @@ class EyeFreezer(Effect):
 
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.last_time = 0
-        self.old = None
-        self.oldLM = None
+        self.images = []
+        self.landmarks = []
         self.indices = None
 
     def apply(self) -> np.ndarray:
@@ -34,13 +33,16 @@ class EyeFreezer(Effect):
         landmarks = self.uncannyCam.faceMesh_results.multi_face_landmarks
         if self.indices is None:
             self.indices = triangles.getTriangleIndices(self.img, landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+        
+        if not landmarks:
+            return self.img
+        self.images.append(self.img)
+        self.landmarks.append(landmarks)
 
-        if (time.time() - self.last_time) > 0.2:
-            self.last_time = time.time()
-            self.old = self.img
-            self.oldLM = landmarks
-
-        return triangles.displace(self.img, self.old, landmarks, self.oldLM, self.indices)
+        if len(self.images) < 5:
+            return self.img
+        
+        return triangles.displace(self.img, self.images.pop(0), landmarks, self.landmarks.pop(0), self.indices)
 
 class FaceFilter(Effect):
 
