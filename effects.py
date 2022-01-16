@@ -10,7 +10,7 @@ from mediapipe.python.solutions import \
     face_mesh as mpFaceMesh, \
     selfie_segmentation as mpSelfieSeg
 import triangulation_media_pipe as tmp
-
+from imagetools import Image
 
 class Effect(ABC):
 
@@ -51,32 +51,27 @@ class FaceSwap(Effect):
 
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.swapImg = cv2.imread('image.png')
-        self.swapLandmarks = mpFaceMesh.FaceMesh(refine_landmarks=True).process(self.swapImg).multi_face_landmarks
+        self.swapImg = Image(cv2.imread('image.png'))
 
     def apply(self) -> np.ndarray:
         return self.swap()
 
     def swap(self):
-        img = self.uncannyCam.img
+        img = Image(self.uncannyCam.img)
         tesselation = tmp.TRIANGULATION
-        landmarks = self.uncannyCam.faceMesh_results.multi_face_landmarks
-        landmarksAsPoints = utils.getLandmarks(img, landmarks)
-        landmarksSwap = utils.getLandmarks(self.swapImg, self.swapLandmarks)
 
-        newFace = np.zeros_like(img)
+        newFace = np.zeros_like(img.image)
         
         for i in range(0, int(len(tesselation) / 3)):
-            triangle_index = [tesselation[i * 3],
-                            tesselation[i * 3 + 1],
-                            tesselation[i * 3 + 2]]
-            triangleSwap = np.array([landmarksSwap[triangle_index[0]], landmarksSwap[triangle_index[1]], landmarksSwap[triangle_index[2]]], np.int32)
-            triangle = np.array([landmarksAsPoints[triangle_index[0]], landmarksAsPoints[triangle_index[1]], landmarksAsPoints[triangle_index[2]]], np.int32)
-            newFace = triangles.displace(newFace, self.swapImg, triangle, triangleSwap)
+            triangle_indices = [tesselation[i * 3],
+                                tesselation[i * 3 + 1],
+                                tesselation[i * 3 + 2]]
+            triangleSwap = np.array(self.swapImg.get_denormalized_landmarks(*triangle_indices), np.int32)
+            triangle = np.array(img.get_denormalized_landmarks(*triangle_indices), np.int32)
+            newFace = triangles.displace(newFace, self.swapImg.image, triangle, triangleSwap)
             
-        points = utils.getLandmarks(img, landmarks)
-        leaveOutPoints = utils.getPointCoordinates(img.shape[0], img.shape[1], landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
-        return triangles.insertNewFace(img, newFace, points, leaveOutPoints, withSeamlessClone=True)
+        leaveOutPoints = utils.getPointCoordinates(img.image.shape[0], img.image.shape[1], img.landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+        return triangles.insertNewFace(img.image, newFace, img.landmarks_denormalized, leaveOutPoints, withSeamlessClone=True)
         
 
 class FaceFilter(Effect):
