@@ -54,7 +54,7 @@ def filterPolygon(img, landmarks, outline):
     """Applies a blur filter to the image inside the polygon"""
     height, width, _ = img.shape
     polygon = getPolygon(height, width, landmarks, outline)
-    blurred = cv2.bilateralFilter(img, 10, 50, 50)
+    blurred = cv2.bilateralFilter(img, 20, 50, 50)
     mask = getMask(img.shape, polygon)
     return np.where(mask==np.array([255,255,255]), blurred, img)
 

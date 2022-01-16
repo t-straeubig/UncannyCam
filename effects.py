@@ -75,7 +75,8 @@ class FaceSwap(Effect):
             newFace = triangles.displace(newFace, self.swapImg, triangle, triangleSwap)
             
         points = utils.getLandmarks(img, landmarks)
-        return triangles.insertNewFace(img, newFace, points, withSeamlessClone=True)
+        leaveOutPoints = utils.getPointCoordinates(img.shape[0], img.shape[1], landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+        return triangles.insertNewFace(img, newFace, points, leaveOutPoints, withSeamlessClone=True)
         
 
 class FaceFilter(Effect):

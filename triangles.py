@@ -21,7 +21,7 @@ def insertTriangles(img, swapImg, landmarks, landmarksOld, triangleIndices):
     return insertNewFace(img, newFace, points)
 
 
-def insertNewFace(img, newFace, points, withSeamlessClone=False):
+def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=False):
     convexhull = cv2.convexHull(np.array(points, np.int32))
     head_mask =  cv2.cvtColor(np.zeros_like(img), cv2.COLOR_BGR2GRAY)
     face_mask = cv2.fillConvexPoly(head_mask, convexhull, 255)
@@ -37,6 +37,8 @@ def insertNewFace(img, newFace, points, withSeamlessClone=False):
 
     white_background = cv2.add(cv2.cvtColor(head_mask, cv2.COLOR_GRAY2BGR), newFace)
     _, mask = cv2.threshold(cv2.cvtColor(white_background, cv2.COLOR_BGR2GRAY), 1, 255, cv2.THRESH_BINARY_INV)
+    if leaveOutPoints is not None:
+        head_mask = cv2.fillConvexPoly(mask, cv2.convexHull(np.array(leaveOutPoints, np.int32)), 255)
     return np.where(cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR) == np.array([255,255,255]), img, face)
 
 

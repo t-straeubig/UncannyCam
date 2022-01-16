@@ -22,8 +22,8 @@ class UncannyCam():
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
         self.effects.append(FaceSwap(self))
-        #self.effects.append(EyeFreezer(self))
-        #self.effects.append(FaceFilter(self))
+        self.effects.append(EyeFreezer(self))
+        self.effects.append(FaceFilter(self))
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
