@@ -62,7 +62,7 @@ def segmentationFilter(img, mask):
         background = np.zeros(img.shape, dtype=np.uint8)
         background[:] = (0,0,0)
         condition = np.stack((mask,) * 3, axis=-1) > 0.1
-        blurred = cv2.bilateralFilter(img, 10, 50, 50)
+        blurred = cv2.bilateralFilter(img, 5, 50, 50)
         return np.where(condition, blurred, img)
 
 def drawLandmarks(img, landmarks):
@@ -72,16 +72,28 @@ def drawLandmarks(img, landmarks):
         for landmark in faceLms.landmark:
             point = denormalize(width, height, landmark)
             cv2.circle(img, point, 0, (255,0,0), 2)
+
+def getLandmarks(img, landmarks):
+    outLandmarks = []
+    height, width, _ = img.shape
+    for faceLms in landmarks:
+        for landmark in faceLms.landmark:
+            outLandmarks.append(denormalize(width, height, landmark))
+    return outLandmarks
    
 def getPointCoordinates(height, width, landmarks, indices):
     points = []
     for faceLms in landmarks:
         for i, j in indices:
             point = denormalize(width, height, faceLms.landmark[i])
-            points.append(points)
+            points.append(point)
     return points
 
 def drawLines(img, lines):
     for i, j in lines:
         cv2.line(img, i, j, (0,255,00), 1)
 
+def drawPoints(img, lines):
+    for i, j in lines:
+        cv2.circle(img, i, 0, (255,0,0), 2)
+        cv2.circle(img, j, 0, (255,0,0), 2)
