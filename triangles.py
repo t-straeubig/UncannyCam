@@ -5,20 +5,21 @@ import mediapipe as mp
 from mediapipe.python.solutions import face_mesh as mpFaceMesh
 
    
-def insertTriangles(img, swapImg, landmarks, landmarksOld, triangleIndices):
-    trianglesOld = getTriangles(swapImg, landmarksOld, triangleIndices)
-    trianglesNew = getTriangles(img, landmarks, triangleIndices)
+def insertTriangles(img, swapImg, triangleIndices, pointIndices, leaveOutPoints=None, withSeamlessClone=False):
+    swap_triangles = getTriangles(swapImg, triangleIndices)
+    triangles = getTriangles(img, triangleIndices)
 
     #newFace is the transformed part of the face with a black background
-    newFace = np.zeros_like(img)
-    for i, t in enumerate(trianglesNew):
-        t2 = trianglesOld[i]
-        triangle = np.float32([[t[0], t[1]], [t[2], t[3]], [t[4], t[5]]])
-        triangleSwap = np.float32([[t2[0], t2[1]], [t2[2], t2[3]], [t2[4], t2[5]]])
-        newFace = displace(newFace, swapImg, triangle, triangleSwap)
-
-    points = utils.getPointCoordinates(img.shape[0], img.shape[1], landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
-    return insertNewFace(img, newFace, points)
+    newFace = np.zeros_like(img.image)
+    for triangle, swap_triangle in zip(triangles, swap_triangles):
+        # triangle = np.array(triangle, np.int32)
+        triangle = np.float32(triangle)
+        swap_triangle = np.float32(swap_triangle)
+        newFace = displace(newFace, swapImg.image, triangle, swap_triangle)
+    points = img.get_denormalized_landmarks(0, *pointIndices)
+    if leaveOutPoints:
+        leaveOutPoints = img.get_denormalized_landmarks(0, *leaveOutPoints)
+    return insertNewFace(img.image, newFace, points, leaveOutPoints, withSeamlessClone)
 
 
 def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=False):
@@ -76,14 +77,11 @@ def displace(img, swapImg, triangle, triangleSwap):
 
 
 #get triangles as points given the indices of the triangulation
-def getTriangles(img, landmarks, triangles):
+def getTriangles(image, triangles):
     outTriangles = []
-    for lm in landmarks:
-        for t in triangles:
-            x1, y1 = utils.denormalize(img.shape[1], img.shape[0], lm.landmark[t[0]])
-            x2, y2 = utils.denormalize(img.shape[1], img.shape[0], lm.landmark[t[1]])
-            x3, y3 = utils.denormalize(img.shape[1], img.shape[0], lm.landmark[t[2]])
-            outTriangles.append([x1, y1, x2, y2, x3, y3])
+    for faceId in range(len(image.landmarks_denormalized)):
+        for triangle in triangles:
+            outTriangles.append(image.get_denormalized_landmarks(faceId, *triangle))
     return outTriangles
 
 

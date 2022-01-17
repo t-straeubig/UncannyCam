@@ -1,6 +1,5 @@
 from typing import List
 import cv2
-import cv2
 import mediapipe as mp
 import numpy as np
 import utils as ut
@@ -11,7 +10,7 @@ from mediapipe.python.solutions import \
     face_mesh as mpFaceMesh, \
     selfie_segmentation as mpSelfieSeg
 from effects import Effect, EyeFreezer, FaceFilter, FaceSwap
-
+from imagetools import Image
 
 class UncannyCam():
     def __init__(self) -> None:
@@ -22,8 +21,8 @@ class UncannyCam():
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
         self.effects.append(FaceSwap(self))
-        self.effects.append(EyeFreezer(self))
-        self.effects.append(FaceFilter(self))
+        # self.effects.append(EyeFreezer(self))
+        # self.effects.append(FaceFilter(self))
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
@@ -32,27 +31,25 @@ class UncannyCam():
     
     def mainloop(self) -> None:
         while self.cap.isOpened():
-            success, self.img = self.cap.read()
+            success, self.imgraw = self.cap.read()
             if not success:
                 print("No Image could be captured")
                 continue
             
-            self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-            self.faceMesh_results = self.faceMesh.process(self.img)
-            self.selfieSeg_results = self.selfieSeg.process(self.img)
-
+            # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
+            self.img = Image(self.imgraw, selfieseg=True)
             for effect in self.effects:
                 self.img = effect.apply()
 
             if self.testMode:
-                self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
-                cv2.imshow("Image", self.img)
+                # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
+                cv2.imshow("Image", self.img.image)
                 key = cv2.waitKey(20)
                 if key == 27: # exit on ESC
                     break
                     
             else:
-                self.cam.send(self.img)
+                self.cam.send(self.img.image)
                 self.cam.sleep_until_next_frame()
 
         print("main loop terminated")

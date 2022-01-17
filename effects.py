@@ -28,23 +28,24 @@ class EyeFreezer(Effect):
         super().__init__(uncannyCam)
         self.images = []
         self.landmarks = []
-        self.indices = None
+        self.eye_triangles = None
+        self.eye_points = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
-        self.img = self.uncannyCam.img  # for readability
-        landmarks = self.uncannyCam.faceMesh_results.multi_face_landmarks
-        if self.indices is None:
-            self.indices = triangles.getTriangleIndices(self.img, landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+        img = self.uncannyCam.img
+        if not img.landmarks:
+            return img
         
-        if not landmarks:
-            return self.img
-        self.images.append(self.img)
-        self.landmarks.append(landmarks)
+        if self.eye_triangles is None:
+            self.eye_triangles = triangles.getTriangleIndices(img.image, img.landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+        
+        self.images.append(img.copy())
 
         if len(self.images) < 7:
-            return self.img
-        
-        return triangles.insertTriangles(self.img, self.images.pop(0), landmarks, self.landmarks.pop(0), self.indices)
+            return img
+        swap_img: Image = self.images.pop(0)
+        img.image = triangles.insertTriangles(img, swap_img, self.eye_triangles, self.eye_points)
+        return img
 
 
 class FaceSwap(Effect):
@@ -52,26 +53,19 @@ class FaceSwap(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.swapImg = Image(cv2.imread('image.png'))
+        self.triangles = tmp.TRIANGULATION_NESTED
+        self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
+        self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
         return self.swap()
 
     def swap(self):
-        img = Image(self.uncannyCam.img)
-        tesselation = tmp.TRIANGULATION
-
-        newFace = np.zeros_like(img.image)
-        
-        for i in range(0, int(len(tesselation) / 3)):
-            triangle_indices = [tesselation[i * 3],
-                                tesselation[i * 3 + 1],
-                                tesselation[i * 3 + 2]]
-            triangleSwap = np.array(self.swapImg.get_denormalized_landmarks(*triangle_indices), np.int32)
-            triangle = np.array(img.get_denormalized_landmarks(*triangle_indices), np.int32)
-            newFace = triangles.displace(newFace, self.swapImg.image, triangle, triangleSwap)
-            
-        leaveOutPoints = utils.getPointCoordinates(img.image.shape[0], img.image.shape[1], img.landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
-        return triangles.insertNewFace(img.image, newFace, img.landmarks_denormalized, leaveOutPoints, withSeamlessClone=True)
+        img = self.uncannyCam.img
+        if not img.landmarks:
+            return img
+        img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
+        return img
         
 
 class FaceFilter(Effect):
@@ -81,13 +75,13 @@ class FaceFilter(Effect):
         self.mode = mode
 
     def filterFace(self):
-        landmarks = self.uncannyCam.faceMesh_results.multi_face_landmarks
+        landmarks = self.uncannyCam.img.landmarks
         facemeshOval = mpFaceMesh.FACEMESH_FACE_OVAL
-        return utils.filterPolygon(self.uncannyCam.img, landmarks, facemeshOval)
+        return utils.filterPolygon(self.uncannyCam.img.image, landmarks, facemeshOval)
 
     def filterPerson(self):
-        mask = self.uncannyCam.selfieSeg_results.segmentation_mask
-        return utils.segmentationFilter(self.uncannyCam.img, mask)
+        mask = self.uncannyCam.img.selfieSeg_results
+        return utils.segmentationFilter(self.uncannyCam.img.image, mask)
 
     def apply(self) -> np.ndarray:
         return {

@@ -2,11 +2,6 @@ import cv2
 import numpy as np
 import mediapipe as mp
 
-def denormalize(width, height, landmark):
-    x = int(width * landmark.x)
-    y = int(height * landmark.y)
-    return x, y
-
 
 def getLines(height, width, landmarks, indices):
     """Returns a list of landmark lines in absolute coordinates"""
@@ -73,14 +68,14 @@ def drawLandmarks(img, landmarks):
             point = denormalize(width, height, landmark)
             cv2.circle(img, point, 0, (255,0,0), 2)
 
-def getLandmarks(img, landmarks):
-    outLandmarks = []
-    height, width, _ = img.shape
-    for faceLms in landmarks:
-        for landmark in faceLms.landmark:
-            outLandmarks.append(denormalize(width, height, landmark))
-    return outLandmarks
-   
+def distinct_indices(indices):
+    distinct = set()
+    for poly in indices:
+        for point in poly:
+            distinct.add(point)
+    return list(distinct)
+
+
 def getPointCoordinates(height, width, landmarks, indices):
     points = []
     for faceLms in landmarks:
