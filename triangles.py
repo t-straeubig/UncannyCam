@@ -16,9 +16,9 @@ def insertTriangles(img, swapImg, triangleIndices, pointIndices, leaveOutPoints=
         triangle = np.float32(triangle)
         swap_triangle = np.float32(swap_triangle)
         newFace = displace(newFace, swapImg.image, triangle, swap_triangle)
-    points = img.get_denormalized_landmarks(0, *pointIndices)
+    points = img.get_denormalized_landmarks(pointIndices)
     if leaveOutPoints:
-        leaveOutPoints = img.get_denormalized_landmarks(0, *leaveOutPoints)
+        leaveOutPoints = img.get_denormalized_landmarks(leaveOutPoints)
     return insertNewFace(img.image, newFace, points, leaveOutPoints, withSeamlessClone)
 
 
@@ -81,14 +81,14 @@ def getTriangles(image, triangles):
     outTriangles = []
     for faceId in range(len(image.landmarks_denormalized)):
         for triangle in triangles:
-            outTriangles.append(image.get_denormalized_landmarks(faceId, *triangle))
+            outTriangles.append(image.get_denormalized_landmarks(triangle, faceId))
     return outTriangles
 
 
 #get indices of the triangulation
-def getTriangleIndices(img, landmarks, indices):
-    triangles = initialTriangles(img, landmarks, indices)
-    indicesDict = pointsToIndices(img.shape[0], img.shape[1], landmarks, indices)
+def getTriangleIndices(img, indices):
+    triangles = initialTriangles(img, indices)
+    indicesDict = pointsToIndices(img, indices)
     triangleIndices = []
     for t in triangles:
         t = t.astype(int)
@@ -99,24 +99,21 @@ def getTriangleIndices(img, landmarks, indices):
     return triangleIndices
 
 #get triangulation as points
-def initialTriangles(img, landmarks, indices):
-    polygon = utils.getPolygon(img.shape[0], img.shape[1], landmarks, indices)
-    rect = (0, 0, img.shape[1], img.shape[0])
+def initialTriangles(img, indices):
+    polygon = img.find_polygon_denormalized(indices)
+    rect = (0, 0, img.image.shape[1], img.image.shape[0])
     subDiv = cv2.Subdiv2D(rect)
     subDiv.insert(polygon)
     triangleList = subDiv.getTriangleList()              
     return triangleList 
     
 #create dictionary mapping points to indices in facemesh
-def pointsToIndices(height, width, landmarks, indices):
+def pointsToIndices(img, indices):
+    distinct = utils.distinct_indices(indices)
     points = {}
-    for faceLms in landmarks:
-        for line in indices:
-            i, j = line
-            x1, y1 = utils.denormalize(width, height, faceLms.landmark[i])
-            x2, y2 = utils.denormalize(width, height, faceLms.landmark[j])
-            if (x1,y1) not in points:
-                points[(x1,y1)] = i
-            if (x2,y2) not in points:
-                points[(x2,y2)] = j
+    for faceId in range(len(img.landmarks)):
+        for index in distinct:
+            landmark_denormalized = img.get_denormalized_landmark(index)
+            if landmark_denormalized not in points:
+                points[landmark_denormalized] = index
     return points  

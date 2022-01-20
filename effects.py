@@ -1,7 +1,6 @@
 from abc import ABC
 import time
 import numpy as np
-from numpy.lib.twodim_base import tri
 import triangles
 import utils
 import cv2
@@ -37,7 +36,7 @@ class EyeFreezer(Effect):
             return img
         
         if self.eye_triangles is None:
-            self.eye_triangles = triangles.getTriangleIndices(img.image, img.landmarks, mpFaceMesh.FACEMESH_LEFT_EYE)
+            self.eye_triangles = triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_LEFT_EYE)
         
         self.images.append(img.copy())
 
@@ -75,14 +74,12 @@ class FaceFilter(Effect):
         self.mode = mode
 
     def filterFace(self):
-        img = self.uncannyCam.img
-        img.image = utils.filterPolygon(img, mpFaceMesh.FACEMESH_FACE_OVAL)
-        return img
+        self.uncannyCam.img.filterPolygon(mpFaceMesh.FACEMESH_FACE_OVAL)
+        return self.uncannyCam.img
 
     def filterPerson(self):
-        img = self.uncannyCam.img
-        img.image = utils.segmentationFilter(self.uncannyCam.img)
-        return img
+        self.uncannyCam.img.segmentationFilter()
+        return self.uncannyCam.img
 
     def apply(self) -> np.ndarray:
         return {
