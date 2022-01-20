@@ -75,13 +75,14 @@ class FaceFilter(Effect):
         self.mode = mode
 
     def filterFace(self):
-        landmarks = self.uncannyCam.img.landmarks
-        facemeshOval = mpFaceMesh.FACEMESH_FACE_OVAL
-        return utils.filterPolygon(self.uncannyCam.img.image, landmarks, facemeshOval)
+        img = self.uncannyCam.img
+        img.image = utils.filterPolygon(img, mpFaceMesh.FACEMESH_FACE_OVAL)
+        return img
 
     def filterPerson(self):
-        mask = self.uncannyCam.img.selfieSeg_results
-        return utils.segmentationFilter(self.uncannyCam.img.image, mask)
+        img = self.uncannyCam.img
+        img.image = utils.segmentationFilter(self.uncannyCam.img)
+        return img
 
     def apply(self) -> np.ndarray:
         return {

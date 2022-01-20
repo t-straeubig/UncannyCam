@@ -46,4 +46,10 @@ class Image():
 
 
     def get_denormalized_landmarks(self, faceId=0, *indices):
+        """Turns a list of landmark-indices e.g. [0, 5, 3] into a list of denormalized coordinates [[x0, y0], [x5, y5], [x3, y3]].
+        Useful for lines, triangles and other polygons."""
         return list(map(lambda index: self.landmarks_denormalized[faceId][index], indices))
+    
+    def get_denormalized_landmarks_nested(self, faceId=0, *nestedIndices):
+        """Turns a list of list landmark-indices recursively into denormalized coordinates. Useful for lists of polygons"""
+        return list(map(lambda indices: self.get_denormalized_landmarks(faceId, *indices), nestedIndices))
