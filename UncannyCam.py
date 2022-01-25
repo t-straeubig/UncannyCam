@@ -9,7 +9,7 @@ from mediapipe.python.solutions import \
     drawing_utils as mpDraw, \
     face_mesh as mpFaceMesh, \
     selfie_segmentation as mpSelfieSeg
-from effects import Effect, EyeFreezer, FaceFilter, FaceSwap
+from effects import Effect, EyeFreezer, FaceFilter, FaceSwap, FaceSymmetry
 from imagetools import Image
 
 class UncannyCam():
@@ -20,9 +20,10 @@ class UncannyCam():
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
-        self.effects.append(FaceSwap(self))
-        self.effects.append(EyeFreezer(self))
-        self.effects.append(FaceFilter(self))
+        # self.effects.append(FaceSwap(self))
+        # self.effects.append(EyeFreezer(self))
+        # self.effects.append(FaceFilter(self))
+        self.effects.append(FaceSymmetry(self))
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
@@ -37,7 +38,10 @@ class UncannyCam():
                 continue
             
             # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
-            self.img = Image(self.imgraw, selfieseg=True)
+            if not self.img:
+                self.img = Image(self.imgraw, selfieseg=True)
+            else:
+                self.img.change_image(self.imgraw, reprocess=True)
             for effect in self.effects:
                 self.img = effect.apply()
 

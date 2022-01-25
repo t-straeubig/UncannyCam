@@ -12,14 +12,21 @@ selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
 
 class Image():
     def __init__(self, image, landmarks=True, selfieseg=False):
-        self.image = image
-        if landmarks:
-            self.faceMesh_results = faceMesh.process(image)
+        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True) if landmarks else None
+        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0) if selfieSeg else None
+        self.landmarks = None
+        self.change_image(image)
+
+    def change_image(self, img, reprocess=False):
+        self.image = img
+        if self.faceMesh and reprocess:
+            self.faceMesh_results = self.faceMesh.process(img)
             self.landmarks = self.faceMesh_results.multi_face_landmarks
             if self.landmarks:
                 self.landmarks_denormalized = self._get_denormalized_landmarks()
-        if selfieseg:
-            self.selfieSeg_results = selfieSeg.process(image)
+        if self.selfieSeg and reprocess:
+            self.selfieSeg_results = self.selfieSeg.process(img)
+
 
     def _get_denormalized_landmarks(self):
         newFaceLms = []
@@ -44,7 +51,9 @@ class Image():
             copy.landmarks_denormalized = self.landmarks_denormalized
         copy.selfieSeg_results = self.selfieSeg_results
         return copy
-
+    
+    def flipped(self):
+        return cv2.flip(self.image, 1)
 
     def get_denormalized_landmark(self, index, faceId=0):
         return self.landmarks_denormalized[faceId][index]

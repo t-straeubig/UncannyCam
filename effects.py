@@ -57,15 +57,34 @@ class FaceSwap(Effect):
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
-        return self.swap()
-
-    def swap(self):
         img = self.uncannyCam.img
         if not img.landmarks:
             return img
         img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
         return img
-        
+
+
+class FaceSymmetry(Effect):
+
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.triangles = tmp.TRIANGULATION_NESTED
+        self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
+        self.flipped = None
+
+    def apply(self) -> np.ndarray:
+        img = self.uncannyCam.img
+        if not img.landmarks:
+            return img
+        if not self.flipped:
+            self.flipped = Image(img.flipped())
+        else:
+            self.flipped.change_image(img.flipped(), reprocess=True)
+        if not self.flipped.landmarks:
+            return img
+        img.image = triangles.insertTriangles(img, self.flipped, self.triangles, self.points, withSeamlessClone=True)
+        return img
+
 
 class FaceFilter(Effect):
 
