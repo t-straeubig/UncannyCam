@@ -4,6 +4,7 @@ import numpy as np
 import triangles
 import utils
 import cv2
+import keyboard
 from mediapipe.python.solutions import \
     drawing_utils as mpDraw, \
     face_mesh as mpFaceMesh, \
@@ -51,19 +52,27 @@ class FaceSwap(Effect):
 
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.swapImg = Image(cv2.imread('image.png'))
+        self.swapImg = None
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
+        try:
+            if keyboard.is_pressed('s'):
+                self.swapImg = Image(self.uncannyCam.imgRaw)
+        except:
+            pass
         return self.swap()
 
     def swap(self):
         img = self.uncannyCam.img
-        if not img.landmarks:
+        if not img.landmarks or self.swapImg is None:
             return img
-        img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
+        try:
+            img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
+        except:
+            pass
         return img
         
 

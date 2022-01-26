@@ -31,13 +31,13 @@ class UncannyCam():
     
     def mainloop(self) -> None:
         while self.cap.isOpened():
-            success, self.imgraw = self.cap.read()
+            success, self.imgRaw = self.cap.read()
             if not success:
                 print("No Image could be captured")
                 continue
             
             # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
-            self.img = Image(self.imgraw, selfieseg=True)
+            self.img = Image(self.imgRaw, selfieseg=True)
             for effect in self.effects:
                 self.img = effect.apply()
 
