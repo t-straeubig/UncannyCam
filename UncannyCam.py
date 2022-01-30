@@ -39,6 +39,7 @@ class UncannyCam():
             # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
             self.img = Image(self.imgRaw, selfieseg=True)
             for effect in self.effects:
+                
                 self.img = effect.apply()
 
             if self.testMode:
@@ -49,7 +50,7 @@ class UncannyCam():
                     break
                     
             else:
-                self.cam.send(self.img.image)
+                self.cam.send(cv2.cvtColor(self.img.image, cv2.COLOR_RGB2BGR))
                 self.cam.sleep_until_next_frame()
 
         print("main loop terminated")
