@@ -95,5 +95,3 @@ class FaceFilter(Effect):
             0 : self.filterFace,
             1 : self.filterPerson
         }[self.mode]()
-        
-

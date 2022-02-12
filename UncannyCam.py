@@ -16,11 +16,11 @@ class UncannyCam():
     def __init__(self) -> None:
         self.img = None
         self.testMode = True
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        self.cap = cv2.VideoCapture(1)
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
-        self.effects.append(FaceSwap(self))
+        #self.effects.append(FaceSwap(self))
         self.effects.append(EyeFreezer(self))
         self.effects.append(FaceFilter(self))
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
