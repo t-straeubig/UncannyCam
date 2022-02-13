@@ -90,8 +90,21 @@ class FaceFilter(Effect):
         self.uncannyCam.img.segmentationFilter()
         return self.uncannyCam.img
 
+    def filterTriangle(self):
+        indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
+        triangle = [indices[50], indices[100], indices[150]]
+        self.uncannyCam.img.filterTriangle(triangle)
+        return self.uncannyCam.img
+
+    def filterImage(self):
+        self.uncannyCam.img.image = self.uncannyCam.img.cudaFilter()
+        return self.uncannyCam.img
+
     def apply(self) -> np.ndarray:
         return {
             0 : self.filterFace,
-            1 : self.filterPerson
+            1 : self.filterPerson,
+            2 : self.filterTriangle,
+            3: self.filterImage
         }[self.mode]()
+
