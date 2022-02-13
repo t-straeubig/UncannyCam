@@ -73,6 +73,14 @@ class Image():
         mask = utils.getMask(self.image.shape, polygon)
         self.image = np.where(mask==np.array([255,255,255]), blurred, self.image)
 
+    def filterTriangle(self, triangleIndices):
+        denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
+        blurred = self.cudaFilter()
+        mask = utils.getMask(self.image.shape, denormalizedTriangle)
+        self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
+
+
+
     def segmentationFilter(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
         background = np.zeros(self.image.shape, dtype=np.uint8)
