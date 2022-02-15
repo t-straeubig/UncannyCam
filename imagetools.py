@@ -64,30 +64,17 @@ class Image():
         """Turns a list of list landmark-indices recursively into denormalized coordinates. Useful for lists of polygons"""
         return list(map(lambda indices: self.get_denormalized_landmarks(indices, faceId), nestedIndices))
 
-    def find_polygon_denormalized(self, indices):
-        """Finds a (denormalized) polygon in the (indexed) lines"""
-        polygonIndices = utils.find_polygon(indices)
-        return self.get_denormalized_landmarks(polygonIndices)
-
-    def filterPolygon(self, outline, withCuda=True):
-        """Applies a blur filter to the image inside the (indexed) lines"""
-        polygon = self.find_polygon_denormalized(outline)
+    def filter_polygon(self, polygon, withCuda=True):
+        """Applies a blur filter to the image inside the (indexed) polygon"""
+        polygon_denormalized = self.get_denormalized_landmarks(polygon)
         if withCuda:
             blurred = self.cudaFilter()
         else:
             blurred = cv2.bilateralFilter(self.image, 20, 50, 50)
-        mask = utils.getMask(self.image.shape, polygon)
+        mask = utils.getMask(self.image.shape, polygon_denormalized)
         self.image = np.where(mask==np.array([255,255,255]), blurred, self.image)
 
-    def filterTriangle(self, triangleIndices):
-        denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
-        blurred = self.cudaFilter()
-        mask = utils.getMask(self.image.shape, denormalizedTriangle)
-        self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
-
-
-
-    def segmentationFilter(self, withCuda=True):
+    def filter_segmentation(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
         background = np.zeros(self.image.shape, dtype=np.uint8)
         background[:] = (0,0,0)
