@@ -130,3 +130,30 @@ class FaceFilter(Effect):
         }[self.mode]()
         
 
+class HueShift(Effect):
+
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.lower = np.array([0, 48, 80], dtype = "uint8")
+        self.upper = np.array([20, 255, 255], dtype = "uint8")
+
+    def skinMask(self, raw_hsv):
+        """https://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/"""
+        mask = cv2.inRange(raw_hsv, self.lower, self.upper)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+        mask = cv2.erode(mask, kernel, iterations = 2)
+        mask = cv2.dilate(mask, kernel, iterations = 2)
+        mask = cv2.GaussianBlur(mask, (3, 3), 0)
+        mask = np.repeat(mask[:,:,np.newaxis], 3, axis=2)
+        return mask
+
+    def apply(self) -> np.ndarray:
+        raw = self.uncannyCam.img.image
+        raw = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
+        shifted = np.copy(raw)
+        shifted[:,:,0] = shifted[:,:,0] + 60
+        cv2.imshow("mask", self.skinMask(raw))
+        new_raw = np.where(self.skinMask(raw), shifted, raw)
+        new_raw = cv2.cvtColor(new_raw, cv2.COLOR_HSV2BGR)
+        self.uncannyCam.img.image = new_raw
+        return self.uncannyCam.img

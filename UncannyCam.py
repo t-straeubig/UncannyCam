@@ -1,7 +1,7 @@
 from typing import List
 import cv2
 import pyvirtualcam
-from effects import Effect, EyeFreezer, FaceFilter, FaceSwap, FaceSymmetry
+from effects import Effect, EyeFreezer, FaceFilter, FaceSwap, FaceSymmetry, HueShift
 from imagetools import Image
 
 class UncannyCam():
@@ -12,10 +12,11 @@ class UncannyCam():
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
-        self.effects.append(FaceSwap(self))
+        # self.effects.append(FaceSwap(self))
         # self.effects.append(EyeFreezer(self))
         # self.effects.append(FaceFilter(self))
         # self.effects.append(FaceSymmetry(self))
+        self.effects.append(HueShift(self))
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f'Using virtual camera: {self.cam.device}')
 
