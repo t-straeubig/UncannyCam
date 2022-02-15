@@ -4,6 +4,7 @@ import numpy as np
 import triangles
 import utils
 import cv2
+import keyboard
 from mediapipe.python.solutions import \
     drawing_utils as mpDraw, \
     face_mesh as mpFaceMesh, \
@@ -51,16 +52,26 @@ class FaceSwap(Effect):
 
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.swapImg = Image(cv2.imread('image.png'))
+        self.swapImg = None
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
+        if keyboard.is_pressed('s'):
+            self.swapImg = Image(self.uncannyCam.img_raw)
+            if not self.swapImg.landmarks:
+                self.swapImg = None
+        return self.swap()
+
+    def swap(self):
         img = self.uncannyCam.img
-        if not img.landmarks or not self.swapImg.landmarks:
+        if not img.landmarks or not self.swapImg:
             return img
-        img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
+        try:
+            img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
+        except:
+            pass
         return img
 
 
@@ -100,10 +111,22 @@ class FaceFilter(Effect):
         self.uncannyCam.img.segmentationFilter()
         return self.uncannyCam.img
 
+    def filterTriangle(self):
+        indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
+        triangle = [indices[50], indices[100], indices[150]]
+        self.uncannyCam.img.filterTriangle(triangle)
+        return self.uncannyCam.img
+
+    def filterImage(self):
+        self.uncannyCam.img.image = self.uncannyCam.img.cudaFilter()
+        return self.uncannyCam.img
+
     def apply(self) -> np.ndarray:
         return {
             0 : self.filterFace,
-            1 : self.filterPerson
+            1 : self.filterPerson,
+            2 : self.filterTriangle,
+            3 : self.filterImage
         }[self.mode]()
         
 
