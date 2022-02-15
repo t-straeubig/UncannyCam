@@ -100,7 +100,7 @@ def getTriangleIndices(img, indices):
 
 #get triangulation as points
 def initialTriangles(img, indices):
-    polygon = img.find_polygon_denormalized(indices)
+    polygon = img.get_denormalized_landmarks(utils.find_polygon(indices))
     rect = (0, 0, img.image.shape[1], img.image.shape[0])
     subDiv = cv2.Subdiv2D(rect)
     subDiv.insert(polygon)
