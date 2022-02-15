@@ -6,16 +6,13 @@ import cv2
 import time
 import numpy as np
 
-faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-
 
 class Image():
     def __init__(self, image, landmarks=True, selfieseg=False):
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True) if landmarks else None
-        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0) if selfieSeg else None
+        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0) if selfieseg else None
         self.landmarks = None
-        self.change_image(image)
+        self.change_image(image, reprocess=True)
 
     def change_image(self, img, reprocess=False):
         self.image = img

@@ -1,14 +1,6 @@
 from typing import List
 import cv2
-import mediapipe as mp
-import numpy as np
-import utils as ut
-import time
 import pyvirtualcam
-from mediapipe.python.solutions import \
-    drawing_utils as mpDraw, \
-    face_mesh as mpFaceMesh, \
-    selfie_segmentation as mpSelfieSeg
 from effects import Effect, EyeFreezer, FaceFilter, FaceSwap, FaceSymmetry
 from imagetools import Image
 
@@ -24,8 +16,6 @@ class UncannyCam():
         # self.effects.append(EyeFreezer(self))
         # self.effects.append(FaceFilter(self))
         self.effects.append(FaceSymmetry(self))
-        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f'Using virtual camera: {self.cam.device}')
 
@@ -53,7 +43,8 @@ class UncannyCam():
                     break
                     
             else:
-                self.cam.send(self.img.image)
+                img = cv2.cvtColor(self.img.image, cv2.COLOR_BGR2RGB)
+                self.cam.send(img)
                 self.cam.sleep_until_next_frame()
 
         print("main loop terminated")

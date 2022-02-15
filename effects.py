@@ -58,7 +58,7 @@ class FaceSwap(Effect):
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
-        if not img.landmarks:
+        if not img.landmarks or not self.swapImg.landmarks:
             return img
         img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
         return img
