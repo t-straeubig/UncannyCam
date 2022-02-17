@@ -80,7 +80,6 @@ class Image():
         self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
 
 
-
     def segmentationFilter(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
         background = np.zeros(self.image.shape, dtype=np.uint8)
@@ -95,9 +94,10 @@ class Image():
 
     def drawLandmarks(self):
         """Draws points at the landmarks"""
-        for faceLms in self.landmarks_denormalized:
-            for landmark in faceLms:
-                cv2.circle(self.image, landmark, 0, (255,0,0), 2)
+        if self.landmarks:
+            for faceLms in self.landmarks_denormalized:
+                for landmark in faceLms:
+                    cv2.circle(self.image, landmark, 0, (255,0,0), 2)
 
     def drawLines(self, lines):
         """Draws the (denormalized) lines"""

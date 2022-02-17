@@ -108,3 +108,25 @@ class FaceFilter(Effect):
             3: self.filterImage
         }[self.mode]()
 
+class DebuggingFilter(Effect):
+
+    def __init__(self, uncannyCam, mode=1) -> None:
+        super().__init__(uncannyCam)
+        self.index = 0
+        self.landmarks_indices = None
+
+    
+    def apply(self) -> np.ndarray:
+        img = self.uncannyCam.img
+        img.drawLandmarks()
+        landmarks = img.landmarks_denormalized[0]
+        if not self.landmarks_indices:
+            self.landmarks_indices = list(enumerate(landmarks))
+            self.landmarks_indices.sort(key=lambda x: x[1][1])
+            self.landmarks_indices = [item[0] for item in self.landmarks_indices]
+        if keyboard.is_pressed(' ') and self.index < len(landmarks):
+            self.index +=1
+        cv2.circle(img.image, landmarks[self.landmarks_indices[self.index]], 0, (0, 0, 255), 2)
+        if keyboard.is_pressed('i'):
+            print(f"Index: {self.landmarks_indices[self.index]}")
+        return self.uncannyCam.img
