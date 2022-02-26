@@ -166,7 +166,7 @@ class CheeksFilter(Effect):
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        diff_hue = 170
+        diff_hue = 60
         h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
         hsv_new = cv2.merge([h_new, s, v])
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
