@@ -1,5 +1,4 @@
 from abc import ABC
-import time
 import numpy as np
 import triangles
 import utils
@@ -71,7 +70,7 @@ class FaceSwap(Effect):
         img.image = triangles.insertTriangles(img, self.swapImg, self.triangles, self.points, self.leaveOutPoints, withSeamlessClone=True)
         return img
 
-
+      
 class FaceSymmetry(Effect):
 
     def __init__(self, uncannyCam) -> None:
@@ -93,7 +92,7 @@ class FaceSymmetry(Effect):
         img.image = triangles.insertTriangles(img, self.flipped, self.triangles, self.points, withSeamlessClone=True)
         return img
 
-
+      
 class FaceFilter(Effect):
 
     def __init__(self, uncannyCam, mode=3) -> None:
@@ -117,8 +116,8 @@ class FaceFilter(Effect):
         #     self.uncannyCam.img.drawPolygons([self.uncannyCam.img.get_denormalized_landmarks(triangle)])
         return self.uncannyCam.img
 
-    def filter_image(self):
-        self.uncannyCam.img.image = self.uncannyCam.img.cudaFilter()
+    def filterImage(self):
+        self.uncannyCam.img.image = utils.cudaCustomizedFilter(self.uncannyCam.img.image)
         return self.uncannyCam.img
 
     def apply(self) -> np.ndarray:
@@ -129,4 +128,62 @@ class FaceFilter(Effect):
             3 : self.filter_image
         }[self.mode]()
         
+
+
+class CheeksFilter(Effect):
+
+    def __init__(self, uncannyCam, withCuda=True) -> None:
+        super().__init__(uncannyCam)
+        # left and right cheeck
+        self.polygon_indices = [
+            [111, 100, 207, 147, 123], [346, 347, 329, 423, 376, 427]]
+        self.withCuda = withCuda
+
+    def apply(self) -> np.ndarray:
+        img = self.uncannyCam.img
+        shifted = self.hueShift(img.image)
+
+        mask = utils.getBlurredMask(img.image.shape, self.denormalized_polygons(), self.withCuda)
+        
+        combined = shifted * mask + img.image * (1 - mask)
+        img.image = combined.astype(np.uint8)
+        return img
+
+    def hueShift(self, image_bgr):
+        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        diff_hue = 170
+        h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
+        hsv_new = cv2.merge([h_new, s, v])
+        return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
+
+    def denormalized_polygons(self):
+        polygons = []
+        for index, _ in enumerate(self.polygon_indices):
+            polygons.append(self.uncannyCam.img.get_denormalized_landmarks(self.polygon_indices[index]))
+        return polygons
+
+class DebuggingFilter(Effect):
+
+    def __init__(self, uncannyCam, mode=1) -> None:
+        super().__init__(uncannyCam)
+        self.index = 0
+        self.landmarks_indices = None
+
+    
+    def apply(self) -> np.ndarray:
+        img = self.uncannyCam.img
+        img.drawLandmarks()
+        landmarks = img.landmarks_denormalized[0]
+        if not self.landmarks_indices:
+            self.landmarks_indices = list(enumerate(landmarks))
+            self.landmarks_indices.sort(key=lambda x: x[1][1])
+            self.landmarks_indices = [item[0] for item in self.landmarks_indices]
+        if keyboard.is_pressed(' ') and self.index < len(landmarks):
+            self.index +=1
+        cv2.circle(img.image, landmarks[self.landmarks_indices[self.index]], 0, (0, 0, 255), 2)
+        if keyboard.is_pressed('i'):
+            print(f"Index: {self.landmarks_indices[self.index]}")
+        return self.uncannyCam.img
+
 

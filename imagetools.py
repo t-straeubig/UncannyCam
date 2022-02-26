@@ -68,19 +68,25 @@ class Image():
         """Applies a blur filter to the image inside the (indexed) polygon"""
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
         if withCuda:
-            blurred = self.cudaFilter()
+            blurred = utils.cudaCustomizedFilter(self.image)
         else:
             blurred = cv2.bilateralFilter(self.image, 20, 50, 50)
         mask = utils.getMask(self.image.shape, polygon_denormalized)
         self.image = np.where(mask==np.array([255,255,255]), blurred, self.image)
 
-    def filter_segmentation(self, withCuda=True):
+    def filterTriangle(self, triangleIndices):
+        denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
+        blurred = utils.cudaCustomizedFilter(self.image)
+        mask = utils.getMask(self.image.shape, denormalizedTriangle)
+        self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
+
+    def segmentationFilter(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
         background = np.zeros(self.image.shape, dtype=np.uint8)
         background[:] = (0,0,0)
         condition = np.stack((self.selfieSeg_results.segmentation_mask,) * 3, axis=-1) > 0.1
         if withCuda:
-            blurred = self.cudaFilter()
+            blurred = utils.cudaCustomizedFilter(self.image)
         else:
             blurred = cv2.bilateralFilter(self.image, 5, 50, 50)
         self.image = np.where(condition, blurred, self.image)
@@ -88,9 +94,10 @@ class Image():
 
     def drawLandmarks(self):
         """Draws points at the landmarks"""
-        for faceLms in self.landmarks_denormalized:
-            for landmark in faceLms:
-                cv2.circle(self.image, landmark, 0, (255,0,0), 2)
+        if self.landmarks:
+            for faceLms in self.landmarks_denormalized:
+                for landmark in faceLms:
+                    cv2.circle(self.image, landmark, 0, (255,0,0), 2)
 
     def drawLines(self, lines):
         """Draws the (denormalized) lines"""
@@ -110,19 +117,3 @@ class Image():
             cv2.circle(self.image, i, 0, (255,0,0), 2)
             cv2.circle(self.image, j, 0, (255,0,0), 2)
 
-    def imageAsRGBA(self):
-        b_channel, g_channel, r_channel = cv2.split(self.image)
-        alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype)
-        return cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
-
-    def cudaFilter(self):
-        # Use GPU Mat to speed up filtering
-        cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
-        cudaImg.upload(self.imageAsRGBA())
-        filter = cv2.cuda.createMorphologyFilter(
-            cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(3))
-        filter.apply(cudaImg, cudaImg)
-        cudaImg = cv2.cuda.bilateralFilter(cudaImg, 10, 30, 30)
-
-        result = cudaImg.download()
-        return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)

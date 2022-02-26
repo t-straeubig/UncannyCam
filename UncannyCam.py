@@ -1,7 +1,13 @@
 from typing import List
 import cv2
 import pyvirtualcam
-from effects import Effect, EyeFreezer, FaceFilter, FaceSwap, FaceSymmetry
+
+from mediapipe.python.solutions import \
+    drawing_utils as mpDraw, \
+    face_mesh as mpFaceMesh, \
+    selfie_segmentation as mpSelfieSeg
+from effects import DebuggingFilter, Effect, EyeFreezer, FaceFilter, FaceSwap, CheeksFilter, FaceSymmetry
+
 from imagetools import Image
 
 class UncannyCam():
