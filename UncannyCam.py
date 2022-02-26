@@ -28,27 +28,43 @@ class UncannyCam:
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
-        self.effects.append(FaceSwap(self))
-        # self.effects.append(EyeFreezer(self))
-        # self.effects.append(FaceFilter(self))
-        # self.effects.append(FaceSymmetry(self))
+        self.faceFilter = FaceFilter(self)
+        self.eyeFreezer = EyeFreezer(self)
+        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
+        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f"Using virtual camera: {self.cam.device}")
+        
+    def toogleFaceFilter(self):
+        if self.faceFilter in self.effects:
+            self.effects.remove(self.faceFilter)
+        else:
+            self.effects.append(self.faceFilter)
+
+    def toogleEyeFreezer(self):
+        if self.eyeFreezer in self.effects:
+            self.effects.remove(self.eyeFreezer)
+        else:
+            self.effects.append(self.eyeFreezer)
+
+    def get_frame(self):
+        success, self.imgRaw = self.cap.read()
+
+        if not success:
+            print("No Image could be captured")
+        
+        self.img = Image(self.imgRaw, selfieseg=True)
+        for effect in self.effects:
+            self.img = effect.apply()
+        
+        return self.img.image
+
+    def close_camera(self):
+        self.cap.release()
 
     def mainloop(self) -> None:
         while self.cap.isOpened():
-            success, self.img_raw = self.cap.read()
-            if not success:
-                print("No Image could be captured")
-                continue
-
-            # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
-            if not self.img:
-                self.img = Image(self.img_raw, selfieseg=True)
-            else:
-                self.img.change_image(self.img_raw, reprocess=True)
-            for effect in self.effects:
-                self.img = effect.apply()
+            self.get_frame()
 
             if self.testMode:
                 # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
