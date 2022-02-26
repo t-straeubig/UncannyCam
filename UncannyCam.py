@@ -28,13 +28,14 @@ class UncannyCam:
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
+        self.effects.append(CheeksFilter(self))
         self.faceFilter = FaceFilter(self)
         self.eyeFreezer = EyeFreezer(self)
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f"Using virtual camera: {self.cam.device}")
-        
+
     def toogleFaceFilter(self):
         if self.faceFilter in self.effects:
             self.effects.remove(self.faceFilter)
@@ -52,11 +53,11 @@ class UncannyCam:
 
         if not success:
             print("No Image could be captured")
-        
+
         self.img = Image(self.imgRaw, selfieseg=True)
         for effect in self.effects:
             self.img = effect.apply()
-        
+
         return self.img.image
 
     def close_camera(self):
