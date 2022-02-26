@@ -9,15 +9,16 @@ def find_polygon(lines):
     polygon = []
     polygon.append(lines[0][0])
     polygon.append(lines[0][1])
-    while len(polygon) <= len(lines)*3:
+    while len(polygon) <= len(lines) * 3:
         for line in lines:
             first, second = line
             if first == polygon[-1] and second != polygon[-2]:
                 polygon.append(second)
             elif second == polygon[-1] and first != polygon[-2]:
                 polygon.append(first)
-    
+
     return polygon
+
 
 def getMask(shape, polygon) -> np.ndarray:
     """Returns an np-array with specified shape where points inside the polygon are white"""
@@ -38,7 +39,7 @@ def getBlurredMask(shape, polygons, withCuda) -> np.ndarray:
         mask = cudaGaussianFilter(np.uint8(mask))
     else:
         mask = cv2.GaussianBlur(mask, (65, 65), 0)
-    
+
     return mask / 255
 
 
@@ -54,7 +55,7 @@ def cudaGaussianFilter(image):
     cudaImg.upload(imageBGR_RGBA(image))
     filter = cv2.cuda.createGaussianFilter(cv2.CV_8UC4, -1, (31, 31), 16)
     filter.apply(cudaImg, cudaImg)
-  
+
     result = cudaImg.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
@@ -63,8 +64,7 @@ def cudaCustomizedFilter(image):
     # Use GPU Mat to speed up filtering
     cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
     cudaImg.upload(imageBGR_RGBA(image))
-    filter = cv2.cuda.createMorphologyFilter(
-        cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(3))
+    filter = cv2.cuda.createMorphologyFilter(cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(3))
     filter.apply(cudaImg, cudaImg)
     cudaImg = cv2.cuda.bilateralFilter(cudaImg, 10, 30, 30)
 
@@ -78,4 +78,3 @@ def distinct_indices(indices):
         for point in poly:
             distinct.add(point)
     return list(distinct)
-
