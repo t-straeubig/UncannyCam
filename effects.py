@@ -1,5 +1,4 @@
 from abc import ABC
-import time
 import numpy as np
 import triangles
 import utils
@@ -74,7 +73,7 @@ class FaceSwap(Effect):
         except:
             pass
         return img
-        
+
 
 class FaceFilter(Effect):
 
@@ -97,7 +96,7 @@ class FaceFilter(Effect):
         return self.uncannyCam.img
 
     def filterImage(self):
-        self.uncannyCam.img.image = self.uncannyCam.img.cudaFilter()
+        self.uncannyCam.img.image = utils.cudaCustomizedFilter(self.uncannyCam.img.image)
         return self.uncannyCam.img
 
     def apply(self) -> np.ndarray:
@@ -107,6 +106,40 @@ class FaceFilter(Effect):
             2 : self.filterTriangle,
             3: self.filterImage
         }[self.mode]()
+
+
+class CheeksFilter(Effect):
+
+    def __init__(self, uncannyCam, withCuda=True) -> None:
+        super().__init__(uncannyCam)
+        # left and right cheeck
+        self.polygon_indices = [
+            [111, 100, 207, 147, 123], [346, 347, 329, 423, 376, 427]]
+        self.withCuda = withCuda
+
+    def apply(self) -> np.ndarray:
+        img = self.uncannyCam.img
+        shifted = self.hueShift(img.image)
+
+        mask = utils.getBlurredMask(img.image.shape, self.denormalized_polygons(), self.withCuda)
+        
+        combined = shifted * mask + img.image * (1 - mask)
+        img.image = combined.astype(np.uint8)
+        return img
+
+    def hueShift(self, image_bgr):
+        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        diff_hue = 170
+        h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
+        hsv_new = cv2.merge([h_new, s, v])
+        return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
+
+    def denormalized_polygons(self):
+        polygons = []
+        for index, _ in enumerate(self.polygon_indices):
+            polygons.append(self.uncannyCam.img.get_denormalized_landmarks(self.polygon_indices[index]))
+        return polygons
 
 class DebuggingFilter(Effect):
 
@@ -130,3 +163,5 @@ class DebuggingFilter(Effect):
         if keyboard.is_pressed('i'):
             print(f"Index: {self.landmarks_indices[self.index]}")
         return self.uncannyCam.img
+
+
