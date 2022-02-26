@@ -61,7 +61,7 @@ class FaceSwap(Effect):
 
     def apply(self) -> np.ndarray:
         if keyboard.is_pressed("s"):
-            self.swapImg = Image(self.uncannyCam.img_raw)
+            self.swapImg = Image(self.uncannyCam.img.image)
             if not self.swapImg.landmarks:
                 self.swapImg = None
         return self.swap()
@@ -126,7 +126,7 @@ class FaceFilter(Effect):
         #     self.uncannyCam.img.drawPolygons([self.uncannyCam.img.get_denormalized_landmarks(triangle)])
         return self.uncannyCam.img
 
-    def filterImage(self):
+    def filter_image(self):
         self.uncannyCam.img.image = utils.cudaCustomizedFilter(
             self.uncannyCam.img.image
         )

@@ -38,14 +38,33 @@ class StartWindow(QMainWindow):
         self.image_label.resize(self.disply_width, self.display_height)
         self.button_filter = QPushButton("Smoothing Filter", self.central_widget)
         self.button_eye = QPushButton("Eye Freezer", self.central_widget)
+        self.button_symmetry = QPushButton("Face Symmetry", self.central_widget)
+        self.button_swap = QPushButton("Face Swap", self.central_widget)
+        self.button_cheek = QPushButton("Red Cheeks", self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.addWidget(self.button_filter)
         self.layout.addWidget(self.button_eye)
+        self.layout.addWidget(self.button_symmetry)
+        self.layout.addWidget(self.button_swap)
+        self.layout.addWidget(self.button_cheek)
         self.layout.addWidget(self.image_label)
         self.setCentralWidget(self.central_widget)
 
-        self.button_filter.clicked.connect(self.camera.toogleFaceFilter)
-        self.button_eye.clicked.connect(self.camera.toogleEyeFreezer)
+        self.button_filter.clicked.connect(
+            lambda: self.camera.toggleFilter(self.camera.faceFilter)
+        )
+        self.button_eye.clicked.connect(
+            lambda: self.camera.toggleFilter(self.camera.eyeFreezer)
+        )
+        self.button_symmetry.clicked.connect(
+            lambda: self.camera.toggleFilter(self.camera.faceSymmetry)
+        )
+        self.button_swap.clicked.connect(
+            lambda: self.camera.toggleFilter(self.camera.faceSwap)
+        )
+        self.button_cheek.clicked.connect(
+            lambda: self.camera.toggleFilter(self.camera.cheeksFilter)
+        )
 
         self.thread = VideoThread(self.camera)
         self.thread.change_pixmap_signal.connect(self.update_image)

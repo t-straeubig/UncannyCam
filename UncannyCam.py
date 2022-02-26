@@ -27,22 +27,26 @@ class UncannyCam:
         self.cap = cv2.VideoCapture(0)
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         self.effects: List[Effect] = []
-        self.effects.append(CheeksFilter(self))
         self.faceFilter = FaceFilter(self)
         self.eyeFreezer = EyeFreezer(self)
+        self.faceSwap = FaceSwap(self)
+        self.cheeksFilter = CheeksFilter(self)
+        self.faceSymmetry = FaceSymmetry(self)
+
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f"Using virtual camera: {self.cam.device}")
 
-    def toogleFaceFilter(self):
-        if self.faceFilter in self.effects:
-            self.effects.remove(self.faceFilter)
+    def toggleFilter(self, filter):
+        if filter in self.effects:
+            self.effects.remove(filter)
         else:
-            self.effects.append(self.faceFilter)
+            self.effects.append(filter)
 
-    def toogleEyeFreezer(self):
+    def toggleEyeFreezer(self):
         if self.eyeFreezer in self.effects:
             self.effects.remove(self.eyeFreezer)
         else:
