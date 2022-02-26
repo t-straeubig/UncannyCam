@@ -6,20 +6,24 @@ import cv2
 import time
 import numpy as np
 
-faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-
 
 class Image():
     def __init__(self, image, landmarks=True, selfieseg=False):
-        self.image = image
-        if landmarks:
-            self.faceMesh_results = faceMesh.process(image)
+        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True) if landmarks else None
+        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0) if selfieseg else None
+        self.landmarks = None
+        self.change_image(image, reprocess=True)
+
+    def change_image(self, img, reprocess=False):
+        self.image = img
+        if self.faceMesh and reprocess:
+            self.faceMesh_results = self.faceMesh.process(img)
             self.landmarks = self.faceMesh_results.multi_face_landmarks
             if self.landmarks:
                 self.landmarks_denormalized = self._get_denormalized_landmarks()
-        if selfieseg:
-            self.selfieSeg_results = selfieSeg.process(image)
+        if self.selfieSeg and reprocess:
+            self.selfieSeg_results = self.selfieSeg.process(img)
+
 
     def _get_denormalized_landmarks(self):
         newFaceLms = []
@@ -44,7 +48,9 @@ class Image():
             copy.landmarks_denormalized = self.landmarks_denormalized
         copy.selfieSeg_results = self.selfieSeg_results
         return copy
-
+    
+    def flipped(self):
+        return cv2.flip(self.image, 1)
 
     def get_denormalized_landmark(self, index, faceId=0):
         return self.landmarks_denormalized[faceId][index]
@@ -58,19 +64,14 @@ class Image():
         """Turns a list of list landmark-indices recursively into denormalized coordinates. Useful for lists of polygons"""
         return list(map(lambda indices: self.get_denormalized_landmarks(indices, faceId), nestedIndices))
 
-    def find_polygon_denormalized(self, indices):
-        """Finds a (denormalized) polygon in the (indexed) lines"""
-        polygonIndices = utils.find_polygon(indices)
-        return self.get_denormalized_landmarks(polygonIndices)
-
-    def filterPolygon(self, outline, withCuda=True):
-        """Applies a blur filter to the image inside the (indexed) lines"""
-        polygon = self.find_polygon_denormalized(outline)
+    def filter_polygon(self, polygon, withCuda=True):
+        """Applies a blur filter to the image inside the (indexed) polygon"""
+        polygon_denormalized = self.get_denormalized_landmarks(polygon)
         if withCuda:
             blurred = utils.cudaCustomizedFilter(self.image)
         else:
             blurred = cv2.bilateralFilter(self.image, 20, 50, 50)
-        mask = utils.getMask(self.image.shape, polygon)
+        mask = utils.getMask(self.image.shape, polygon_denormalized)
         self.image = np.where(mask==np.array([255,255,255]), blurred, self.image)
 
     def filterTriangle(self, triangleIndices):
@@ -78,7 +79,6 @@ class Image():
         blurred = utils.cudaCustomizedFilter(self.image)
         mask = utils.getMask(self.image.shape, denormalizedTriangle)
         self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
-
 
     def segmentationFilter(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
@@ -116,9 +116,4 @@ class Image():
         for i, j in lines:
             cv2.circle(self.image, i, 0, (255,0,0), 2)
             cv2.circle(self.image, j, 0, (255,0,0), 2)
-
-
-        
-
-    
 

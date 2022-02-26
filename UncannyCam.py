@@ -1,15 +1,13 @@
 from typing import List
 import cv2
-import mediapipe as mp
-import numpy as np
-import utils as ut
-import time
 import pyvirtualcam
+
 from mediapipe.python.solutions import \
     drawing_utils as mpDraw, \
     face_mesh as mpFaceMesh, \
     selfie_segmentation as mpSelfieSeg
-from effects import DebuggingFilter, Effect, EyeFreezer, FaceFilter, FaceSwap, CheeksFilter
+from effects import DebuggingFilter, Effect, EyeFreezer, FaceFilter, FaceSwap, CheeksFilter, FaceSymmetry
+
 from imagetools import Image
 
 class UncannyCam():
@@ -20,27 +18,27 @@ class UncannyCam():
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.effects: List[Effect] = []
-        #self.effects.append(FaceSwap(self))
-        #self.effects.append(EyeFreezer(self))
-        self.effects.append(FaceFilter(self))
-        self.effects.append(CheeksFilter(self))
-        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
+        self.effects.append(FaceSwap(self))
+        # self.effects.append(EyeFreezer(self))
+        # self.effects.append(FaceFilter(self))
+        # self.effects.append(FaceSymmetry(self))
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
         print(f'Using virtual camera: {self.cam.device}')
 
     
     def mainloop(self) -> None:
         while self.cap.isOpened():
-            success, self.imgRaw = self.cap.read()
+            success, self.img_raw = self.cap.read()
             if not success:
                 print("No Image could be captured")
                 continue
             
             # self.imgraw = cv2.cvtColor(self.imgraw, cv2.COLOR_BGR2RGB)
-            self.img = Image(self.imgRaw, selfieseg=True)
+            if not self.img:
+                self.img = Image(self.img_raw, selfieseg=True)
+            else:
+                self.img.change_image(self.img_raw, reprocess=True)
             for effect in self.effects:
-                
                 self.img = effect.apply()
 
             if self.testMode:
@@ -51,7 +49,7 @@ class UncannyCam():
                     break
                     
             else:
-                self.cam.send(cv2.cvtColor(self.img.image, cv2.COLOR_RGB2BGR))
+                self.cam.send(cv2.cvtColor(self.img.image, cv2.COLOR_BGR2RGB))
                 self.cam.sleep_until_next_frame()
 
         print("main loop terminated")
