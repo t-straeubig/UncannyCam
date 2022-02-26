@@ -154,13 +154,13 @@ class CheeksFilter(Effect):
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
         shifted = self.hueShift(img.image)
+        if img.landmarks:
+            mask = utils.getBlurredMask(
+                img.image.shape, self.denormalized_polygons(), self.withCuda
+            )
 
-        mask = utils.getBlurredMask(
-            img.image.shape, self.denormalized_polygons(), self.withCuda
-        )
-
-        combined = shifted * mask + img.image * (1 - mask)
-        img.image = combined.astype(np.uint8)
+            combined = shifted * mask + img.image * (1 - mask)
+            img.image = combined.astype(np.uint8)
         return img
 
     def hueShift(self, image_bgr):

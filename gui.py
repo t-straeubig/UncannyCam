@@ -9,7 +9,6 @@ import cv2
 
 
 class VideoThread(QThread):
-    change_pixmap_signal = pyqtSignal(np.ndarray)
 
     def __init__(self, camera):
         super().__init__()
@@ -18,8 +17,14 @@ class VideoThread(QThread):
 
     def run(self):
         while self._run_flag:
-            self.change_pixmap_signal.emit(self.camera.get_frame())
-        self.camera.close()
+            self.show_video()
+        self.camera.close_camera()
+
+    def show_video(self):
+        self.camera.get_frame()
+        self.camera.cam.send(cv2.cvtColor(self.camera.img.image, cv2.COLOR_BGR2RGB))
+        self.camera.cam.sleep_until_next_frame()
+
 
     def stop(self):
         """Sets run flag to False and waits for thread to finish"""
@@ -27,10 +32,17 @@ class VideoThread(QThread):
         self.wait()
 
 
+class VideoDisplayThread(VideoThread):
+    change_pixmap_signal = pyqtSignal(np.ndarray)
+
+    def show_video(self):
+        self.change_pixmap_signal.emit(self.camera.get_frame())
+
 class StartWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.camera = UncannyCam()
+        self.camera.testMode = False
         self.central_widget = QWidget()
         self.image_label = QLabel(self)
         self.disply_width = 640
@@ -66,13 +78,24 @@ class StartWindow(QMainWindow):
             lambda: self.camera.toggleFilter(self.camera.cheeksFilter)
         )
 
+        self.video_thread()
+
+    def video_thread(self):
         self.thread = VideoThread(self.camera)
-        self.thread.change_pixmap_signal.connect(self.update_image)
         self.thread.start()
 
     def closeEvent(self, event):
         self.thread.stop()
         event.accept()
+
+
+
+class CameraWindow(StartWindow):
+ 
+    def video_thread(self):
+        self.thread = VideoDisplayThread(self.camera)
+        self.thread.change_pixmap_signal.connect(self.update_image)
+        self.thread.start()
 
     @pyqtSlot(np.ndarray)
     def update_image(self, cv_img):
@@ -91,6 +114,7 @@ class StartWindow(QMainWindow):
             self.disply_width, self.display_height, Qt.KeepAspectRatio
         )
         return QPixmap.fromImage(p)
+
 
 
 app = QApplication([])
