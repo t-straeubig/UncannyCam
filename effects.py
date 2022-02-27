@@ -42,7 +42,7 @@ class EyeFreezer(Effect):
 
         self.images.append(img.copy())
 
-        if len(self.images) < 7:
+        if len(self.images) < 5:
             return img
         swap_img: Image = self.images.pop(0)
         img.image = triangles.insertTriangles(
@@ -150,6 +150,7 @@ class CheeksFilter(Effect):
             [346, 347, 329, 423, 376, 427],
         ]
         self.withCuda = withCuda
+        self.hue_difference = 0
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -163,11 +164,13 @@ class CheeksFilter(Effect):
             img.image = combined.astype(np.uint8)
         return img
 
+    def update_hue_difference(self, value):
+        self.hue_difference = value
+
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        diff_hue = 60
-        h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
+        h_new = np.mod(h + self.hue_difference, 180).astype(np.uint8)
         hsv_new = cv2.merge([h_new, s, v])
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 

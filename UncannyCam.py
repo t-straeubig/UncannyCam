@@ -37,7 +37,7 @@ class UncannyCam:
 
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
+        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=50)
         print(f"Using virtual camera: {self.cam.device}")
 
     def toggleFilter(self, filter):
