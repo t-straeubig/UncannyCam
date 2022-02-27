@@ -160,8 +160,7 @@ class CheeksFilter(Effect):
                 img.image.shape, self.denormalized_polygons(), self.withCuda
             )
 
-            combined = shifted * mask + img.image * (1 - mask)
-            img.image = combined.astype(np.uint8)
+            img.image = np.uint8(shifted * mask + img.image * (1 - mask))
         return img
 
     def update_hue_difference(self, value):

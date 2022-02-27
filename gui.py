@@ -83,6 +83,7 @@ class StartWindow(QMainWindow):
     def setupSliders(self):
         self.slider_cheeks_label = QLabel(self)
         self.slider_cheeks_label.setText("Cheeks Hue")
+        self.slider_cheeks_label.setFixedSize(self.button_filter.width(), self.button_filter.height())
         self.slider_cheeks = QSlider(Qt.Horizontal)
         self.slider_cheeks.setRange(0, 180)
 
@@ -137,7 +138,8 @@ class CameraWindow(StartWindow):
     @pyqtSlot(np.ndarray)
     def update_image(self, cv_img):
         qt_img = self.convert_cv_qt(cv_img)
-        self.image_label.setPixmap(qt_img)
+        myScaledPixmap = qt_img.scaled(self.image_label.size(), Qt.KeepAspectRatio)
+        self.image_label.setPixmap(myScaledPixmap)
 
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
