@@ -136,14 +136,22 @@ class HueShift(Effect):
         super().__init__(uncannyCam)
         self.lower = np.array([0, 48, 80], dtype = "uint8")
         self.upper = np.array([20, 255, 255], dtype = "uint8")
+        # self.lower = np.array([0, 10, 60], dtype = "uint8")
+        # self.upper = np.array([20, 150, 255], dtype = "uint8")
+        
+    # def skinMask(self, image):
+    #     polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
+    #     polygon_denormalized = image.get_denormalized_landmarks(polygon)
+    #     return utils.getMask(image.image.shape, polygon_denormalized)
 
     def skinMask(self, raw_hsv):
         """https://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/"""
         mask = cv2.inRange(raw_hsv, self.lower, self.upper)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-        mask = cv2.erode(mask, kernel, iterations = 2)
-        mask = cv2.dilate(mask, kernel, iterations = 2)
-        mask = cv2.GaussianBlur(mask, (3, 3), 0)
+        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+        # mask = cv2.erode(mask, kernel, iterations = 2)
+        # mask = cv2.dilate(mask, kernel, iterations = 2)
+        # mask = cv2.GaussianBlur(mask, (3, 3), 0)
+        # cv2.imshow("mask", mask)
         mask = np.repeat(mask[:,:,np.newaxis], 3, axis=2)
         return mask
 
@@ -151,9 +159,14 @@ class HueShift(Effect):
         raw = self.uncannyCam.img.image
         raw = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
         shifted = np.copy(raw)
-        shifted[:,:,0] = shifted[:,:,0] + 60
-        cv2.imshow("mask", self.skinMask(raw))
+        
+        # shifted[:,:,0] = shifted[:,:,0] - 20
+        # shifted[:,:,1] = shifted[:,:,1] + 60
+        shifted[:,:,1] = shifted[:,:,1] - 60
+        
+        # new_raw = np.where(self.skinMask(self.uncannyCam.img), shifted, raw)
         new_raw = np.where(self.skinMask(raw), shifted, raw)
+
         new_raw = cv2.cvtColor(new_raw, cv2.COLOR_HSV2BGR)
         self.uncannyCam.img.image = new_raw
         return self.uncannyCam.img
