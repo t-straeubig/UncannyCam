@@ -88,18 +88,28 @@ class StartWindow(QMainWindow):
         self.sliders = []
         self.setupDefaultSlider(
             "Cheeks Hue",
+            self.camera.cheeksFilter,
             max_range=180,
             default_value=self.camera.cheeksFilter.slider_value,
         )
+        self.setupDefaultSlider(
+            "Eye Freezer",
+            self.camera.eyeFreezer,
+            min_range=1,
+            max_range=12,
+            default_value=self.camera.eyeFreezer.slider_value,
+        )
 
-    def setupDefaultSlider(self, text, min_range=0, max_range=1, default_value=0):
+    def setupDefaultSlider(
+        self, text, filter, min_range=0, max_range=1, default_value=0
+    ):
         slider_label = QLabel(self)
         slider_label.setText(text)
         slider_label.setFixedSize(self.buttons[0].width(), self.buttons[0].height())
         slider = QSlider(Qt.Horizontal)
         slider.setRange(min_range, max_range)
         slider.setValue(default_value)
-        slider.valueChanged.connect(self.camera.cheeksFilter.set_slider_value)
+        slider.valueChanged.connect(filter.set_slider_value)
         self.sliders.append((slider_label, slider))
 
     def createLayout(self):

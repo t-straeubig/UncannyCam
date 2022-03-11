@@ -33,6 +33,7 @@ class EyeFreezer(Effect):
         self.landmarks = []
         self.eye_triangles = None
         self.eye_points = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
+        self.slider_value = 5
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -46,13 +47,17 @@ class EyeFreezer(Effect):
 
         self.images.append(img.copy())
 
-        if len(self.images) < 5:
+        if len(self.images) <= self.slider_value or self.slider_value == 1:
             return img
         swap_img: Image = self.images.pop(0)
         img.image = triangles.insertTriangles(
             img, swap_img, self.eye_triangles, self.eye_points
         )
         return img
+
+    def set_slider_value(self, value):
+        super().set_slider_value(value)
+        self.images = []
 
 
 class FaceSwap(Effect):
