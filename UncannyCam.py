@@ -58,9 +58,9 @@ class UncannyCam:
         if not success:
             print("No Image could be captured")
 
-        if not self.img: 
-            self.img = Image(self.img_raw, selfieseg=True) 
-        else: 
+        if not self.img:
+            self.img = Image(self.img_raw, selfieseg=True)
+        else:
             self.img.change_image(self.img_raw, reprocess=True)
 
         for effect in self.effects:

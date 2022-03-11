@@ -17,9 +17,13 @@ class Effect(ABC):
     def __init__(self, uncannyCam) -> None:
         super().__init__()
         self.uncannyCam = uncannyCam
+        self.slider_value = 0
 
     def apply(self) -> np.ndarray:
         return self.uncannyCam.img
+
+    def set_slider_value(self, value):
+        self.slider_value = value
 
 
 class EyeFreezer(Effect):
@@ -150,8 +154,7 @@ class CheeksFilter(Effect):
             [346, 347, 329, 423, 376, 427],
         ]
         self.withCuda = withCuda
-        self.default_slider_value = 10
-        self.hue_difference = 180 - self.default_slider_value
+        self.slider_value = 10
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -164,13 +167,13 @@ class CheeksFilter(Effect):
             img.image = np.uint8(shifted * mask + img.image * (1 - mask))
         return img
 
-    def update_hue_difference(self, value):
-        self.hue_difference = 180 - value
+    def hue_difference(self):
+        return 180 - self.slider_value
 
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        h_new = np.mod(h + self.hue_difference, 180).astype(np.uint8)
+        h_new = np.mod(h + self.hue_difference(), 180).astype(np.uint8)
         hsv_new = cv2.merge([h_new, s, v])
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 

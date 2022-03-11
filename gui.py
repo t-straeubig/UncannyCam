@@ -57,8 +57,6 @@ class StartWindow(QMainWindow):
         self.setupButtons()
         self.setupSliders()
         self.createLayout()
-        self.connectButtons()
-        self.connectSliders()
 
         self.video_thread()
 
@@ -74,51 +72,43 @@ class StartWindow(QMainWindow):
         pass
 
     def setupButtons(self):
-        self.button_filter = QPushButton("Smoothing Filter", self.central_widget)
-        self.button_eye = QPushButton("Eye Freezer", self.central_widget)
-        self.button_symmetry = QPushButton("Face Symmetry", self.central_widget)
-        self.button_swap = QPushButton("Face Swap", self.central_widget)
-        self.button_cheek = QPushButton("Red Cheeks", self.central_widget)
+        self.buttons = []
+        self.setupDefaultButton("Smoothing Filter", self.camera.faceFilter)
+        self.setupDefaultButton("Eye Freezer", self.camera.eyeFreezer)
+        self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
+        self.setupDefaultButton("Face Swap", self.camera.faceSwap)
+        self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
+
+    def setupDefaultButton(self, text, filter):
+        button = QPushButton(text, self.central_widget)
+        button.clicked.connect(lambda: self.camera.toggleFilter(filter))
+        self.buttons.append(button)
 
     def setupSliders(self):
-        self.slider_cheeks_label = QLabel(self)
-        self.slider_cheeks_label.setText("Cheeks Hue")
-        self.slider_cheeks_label.setFixedSize(self.button_filter.width(), self.button_filter.height())
-        self.slider_cheeks = QSlider(Qt.Horizontal)
-        self.slider_cheeks.setRange(0, 180)
-        self.slider_cheeks.setValue(self.camera.cheeksFilter.default_slider_value)
-
-    def connectButtons(self):
-        self.button_filter.clicked.connect(
-            lambda: self.camera.toggleFilter(self.camera.faceFilter)
-        )
-        self.button_eye.clicked.connect(
-            lambda: self.camera.toggleFilter(self.camera.eyeFreezer)
-        )
-        self.button_symmetry.clicked.connect(
-            lambda: self.camera.toggleFilter(self.camera.faceSymmetry)
-        )
-        self.button_swap.clicked.connect(
-            lambda: self.camera.toggleFilter(self.camera.faceSwap)
-        )
-        self.button_cheek.clicked.connect(
-            lambda: self.camera.toggleFilter(self.camera.cheeksFilter)
+        self.sliders = []
+        self.setupDefaultSlider(
+            "Cheeks Hue",
+            max_range=180,
+            default_value=self.camera.cheeksFilter.slider_value,
         )
 
-    def connectSliders(self):
-        self.slider_cheeks.valueChanged.connect(
-            self.camera.cheeksFilter.update_hue_difference
-        )
+    def setupDefaultSlider(self, text, min_range=0, max_range=1, default_value=0):
+        slider_label = QLabel(self)
+        slider_label.setText(text)
+        slider_label.setFixedSize(self.buttons[0].width(), self.buttons[0].height())
+        slider = QSlider(Qt.Horizontal)
+        slider.setRange(min_range, max_range)
+        slider.setValue(default_value)
+        slider.valueChanged.connect(self.camera.cheeksFilter.set_slider_value)
+        self.sliders.append((slider_label, slider))
 
     def createLayout(self):
         self.layout = QVBoxLayout(self.central_widget)
-        self.layout.addWidget(self.button_filter)
-        self.layout.addWidget(self.button_eye)
-        self.layout.addWidget(self.button_symmetry)
-        self.layout.addWidget(self.button_swap)
-        self.layout.addWidget(self.button_cheek)
-        self.layout.addWidget(self.slider_cheeks_label)
-        self.layout.addWidget(self.slider_cheeks)
+        for button in self.buttons:
+            self.layout.addWidget(button)
+        for label, slider in self.sliders:
+            self.layout.addWidget(label)
+            self.layout.addWidget(slider)
         self.setCentralWidget(self.central_widget)
 
 
