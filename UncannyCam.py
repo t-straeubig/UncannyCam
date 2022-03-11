@@ -37,7 +37,7 @@ class UncannyCam:
 
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=50)
+        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 
     def toggleFilter(self, filter):
@@ -53,12 +53,16 @@ class UncannyCam:
             self.effects.append(self.eyeFreezer)
 
     def get_frame(self):
-        success, self.imgRaw = self.cap.read()
+        success, self.img_raw = self.cap.read()
 
         if not success:
             print("No Image could be captured")
 
-        self.img = Image(self.imgRaw, selfieseg=True)
+        if not self.img: 
+            self.img = Image(self.img_raw, selfieseg=True) 
+        else: 
+            self.img.change_image(self.img_raw, reprocess=True)
+
         for effect in self.effects:
             self.img = effect.apply()
 

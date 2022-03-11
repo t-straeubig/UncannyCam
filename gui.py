@@ -70,7 +70,7 @@ class StartWindow(QMainWindow):
         self.thread.stop()
         event.accept()
 
-    def add_video():
+    def add_video(self):
         pass
 
     def setupButtons(self):
