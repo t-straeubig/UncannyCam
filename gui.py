@@ -86,6 +86,7 @@ class StartWindow(QMainWindow):
         self.slider_cheeks_label.setFixedSize(self.button_filter.width(), self.button_filter.height())
         self.slider_cheeks = QSlider(Qt.Horizontal)
         self.slider_cheeks.setRange(0, 180)
+        self.slider_cheeks.setValue(self.camera.cheeksFilter.default_slider_value)
 
     def connectButtons(self):
         self.button_filter.clicked.connect(

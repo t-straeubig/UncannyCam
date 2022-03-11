@@ -150,7 +150,8 @@ class CheeksFilter(Effect):
             [346, 347, 329, 423, 376, 427],
         ]
         self.withCuda = withCuda
-        self.hue_difference = 0
+        self.default_slider_value = 10
+        self.hue_difference = 180 - self.default_slider_value
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -164,7 +165,7 @@ class CheeksFilter(Effect):
         return img
 
     def update_hue_difference(self, value):
-        self.hue_difference = value
+        self.hue_difference = 180 - value
 
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
