@@ -29,7 +29,8 @@ class UncannyCam:
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         self.effects: List[Effect] = []
-        self.faceFilter = FaceFilter(self)
+        self.bilateralFilter = FaceFilter(self)
+        self.morphologyFilter = FaceFilter(self, bilateralFilter=False)
         self.eyeFreezer = EyeFreezer(self)
         self.faceSwap = FaceSwap(self)
         self.cheeksFilter = CheeksFilter(self)

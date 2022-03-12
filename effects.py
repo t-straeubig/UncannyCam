@@ -1,4 +1,5 @@
 from abc import ABC
+from cv2 import bilateralFilter
 import numpy as np
 import triangles
 import utils
@@ -140,10 +141,14 @@ class FaceSymmetry(Effect):
 
 
 class FaceFilter(Effect):
-    def __init__(self, uncannyCam, mode=3) -> None:
+    def __init__(self, uncannyCam, mode=3, bilateralFilter=True) -> None:
         super().__init__(uncannyCam)
         self.mode = mode
-        self.slider_value = 30
+        if bilateralFilter:
+            self.slider_value = 30
+        else:
+            self.slider_value = 3
+        self.bilateralFilter = bilateralFilter
 
     def filter_face(self):
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
@@ -158,15 +163,19 @@ class FaceFilter(Effect):
         indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
         triangle = [indices[50], indices[260], indices[150]]
         self.uncannyCam.img.filter_polygon(triangle)
-        # if self.uncannyCam.img.landmarks:
-        #     self.uncannyCam.img.drawPolygons([self.uncannyCam.img.get_denormalized_landmarks(triangle)])
         return self.uncannyCam.img
 
     def filter_image(self):
-        self.uncannyCam.img.image = utils.cudaCustomizedFilter(
-            self.uncannyCam.img.image,
-            self.slider_value
-        )
+        if self.bilateralFilter:
+            self.uncannyCam.img.image = utils.cudaBilateralFilter(
+                self.uncannyCam.img.image,
+                self.slider_value
+            )
+        else:
+            self.uncannyCam.img.image = utils.cudaMorphologyFilter(
+                self.uncannyCam.img.image,
+                self.slider_value
+            )
         return self.uncannyCam.img
 
     def apply(self) -> np.ndarray:

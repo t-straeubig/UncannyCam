@@ -73,7 +73,8 @@ class StartWindow(QMainWindow):
 
     def setupButtons(self):
         self.buttons = []
-        self.setupDefaultButton("Smoothing Filter", self.camera.faceFilter)
+        self.setupDefaultButton("Smoothing Filter", self.camera.bilateralFilter)
+        self.setupDefaultButton("Morphology Filter", self.camera.morphologyFilter)
         self.setupDefaultButton("Eye Freezer", self.camera.eyeFreezer)
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
@@ -88,10 +89,17 @@ class StartWindow(QMainWindow):
         self.sliders = []
         self.setupDefaultSlider(
             "Smoothing Filter",
-            self.camera.faceFilter,
+            self.camera.bilateralFilter,
             min_range=1,
-            max_range=80,
-            default_value=self.camera.faceFilter.slider_value,
+            max_range=60,
+            default_value=self.camera.bilateralFilter.slider_value,
+        )
+        self.setupDefaultSlider(
+            "Morphology Filter",
+            self.camera.morphologyFilter,
+            min_range=1,
+            max_range=5,
+            default_value=self.camera.morphologyFilter.slider_value,
         )
         self.setupDefaultSlider(
             "Eye Freezer",
