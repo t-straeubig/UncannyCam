@@ -68,6 +68,7 @@ def cudaBilateralFilter(image, kernel_size):
     result = cudaImg.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
+
 def cudaMorphologyFilter(image, size):
     # Use GPU Mat to speed up filtering
     cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)

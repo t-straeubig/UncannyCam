@@ -168,13 +168,11 @@ class FaceFilter(Effect):
     def filter_image(self):
         if self.bilateralFilter:
             self.uncannyCam.img.image = utils.cudaBilateralFilter(
-                self.uncannyCam.img.image,
-                self.slider_value
+                self.uncannyCam.img.image, self.slider_value
             )
         else:
             self.uncannyCam.img.image = utils.cudaMorphologyFilter(
-                self.uncannyCam.img.image,
-                self.slider_value
+                self.uncannyCam.img.image, self.slider_value
             )
         return self.uncannyCam.img
 
