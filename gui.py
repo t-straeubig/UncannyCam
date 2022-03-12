@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QSplitter
 from UncannyCam import UncannyCam
 import numpy as np
 import cv2
@@ -50,7 +50,7 @@ class StartWindow(QMainWindow):
         self.camera = UncannyCam()
         self.camera.testMode = False
         self.central_widget = QWidget()
-        self.disply_width = 640
+        self.display_width = 640
         self.display_height = 480
 
         self.add_video()
@@ -134,7 +134,6 @@ class StartWindow(QMainWindow):
     ):
         slider_label = QLabel(self)
         slider_label.setText(text)
-        slider_label.setFixedSize(self.buttons[0].width(), self.buttons[0].height())
         slider = QSlider(Qt.Horizontal)
         slider.setRange(min_range, max_range)
         slider.setValue(default_value)
@@ -143,12 +142,18 @@ class StartWindow(QMainWindow):
 
     def createLayout(self):
         self.layout = QVBoxLayout(self.central_widget)
-        self.horizontalLayout = QHBoxLayout()
+        self.splitter = QSplitter(Qt.Horizontal, self.central_widget)
         self.verticalLayoutButtons = QVBoxLayout()
         self.verticalLayoutSliders = QVBoxLayout()
-        self.layout.addLayout(self.horizontalLayout)
-        self.horizontalLayout.addLayout(self.verticalLayoutButtons)
-        self.horizontalLayout.addLayout(self.verticalLayoutSliders)
+        self.layout.addWidget(self.splitter)
+        self.leftWidget = QWidget()
+        self.rightWidget = QWidget()
+        self.leftWidget.setLayout(self.verticalLayoutButtons)
+        self.rightWidget.setLayout(self.verticalLayoutSliders)
+        self.splitter.addWidget(self.leftWidget)
+        self.splitter.addWidget(self.rightWidget)
+        self.splitter.setStretchFactor(1,1)
+        self.splitter.setStretchFactor(2,1)
         for button in self.buttons:
             self.verticalLayoutButtons.addWidget(button)
         for label, slider in self.sliders:
@@ -160,11 +165,12 @@ class StartWindow(QMainWindow):
 class CameraWindow(StartWindow):
     def add_video(self):
         self.image_label = QLabel(self)
-        self.image_label.resize(self.disply_width, self.display_height)
+        self.image_label.resize(self.display_width, self.display_height)
 
     def createLayout(self):
         super().createLayout()
-        self.layout.addWidget(self.image_label)
+        self.splitter.addWidget(self.image_label)
+        self.splitter.setStretchFactor(3,1)
 
     def video_thread(self):
         self.thread = VideoDisplayThread(self.camera)
@@ -186,7 +192,7 @@ class CameraWindow(StartWindow):
             rgb_image.data, w, h, bytes_per_line, QtGui.QImage.Format_RGB888
         )
         p = convert_to_Qt_format.scaled(
-            self.disply_width, self.display_height, Qt.KeepAspectRatio
+            self.display_width, self.display_height, Qt.KeepAspectRatio
         )
         return QPixmap.fromImage(p)
 
