@@ -90,8 +90,8 @@ class StartWindow(QMainWindow):
             "Smoothing Filter",
             self.camera.faceFilter,
             min_range=1,
-            max_range=12,
-            default_value=self.camera.eyeFreezer.slider_value,
+            max_range=80,
+            default_value=self.camera.faceFilter.slider_value,
         )
         self.setupDefaultSlider(
             "Eye Freezer",

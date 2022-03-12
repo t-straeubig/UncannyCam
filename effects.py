@@ -143,6 +143,7 @@ class FaceFilter(Effect):
     def __init__(self, uncannyCam, mode=3) -> None:
         super().__init__(uncannyCam)
         self.mode = mode
+        self.slider_value = 30
 
     def filter_face(self):
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
@@ -163,7 +164,8 @@ class FaceFilter(Effect):
 
     def filter_image(self):
         self.uncannyCam.img.image = utils.cudaCustomizedFilter(
-            self.uncannyCam.img.image
+            self.uncannyCam.img.image,
+            self.slider_value
         )
         return self.uncannyCam.img
 
