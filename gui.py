@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QHBoxLayout
 from UncannyCam import UncannyCam
 import numpy as np
 import cv2
@@ -87,6 +87,13 @@ class StartWindow(QMainWindow):
     def setupSliders(self):
         self.sliders = []
         self.setupDefaultSlider(
+            "Smoothing Filter",
+            self.camera.faceFilter,
+            min_range=1,
+            max_range=12,
+            default_value=self.camera.eyeFreezer.slider_value,
+        )
+        self.setupDefaultSlider(
             "Eye Freezer",
             self.camera.eyeFreezer,
             min_range=1,
@@ -128,11 +135,17 @@ class StartWindow(QMainWindow):
 
     def createLayout(self):
         self.layout = QVBoxLayout(self.central_widget)
+        self.horizontalLayout = QHBoxLayout()
+        self.verticalLayoutButtons = QVBoxLayout()
+        self.verticalLayoutSliders = QVBoxLayout()
+        self.layout.addLayout(self.horizontalLayout)
+        self.horizontalLayout.addLayout(self.verticalLayoutButtons)
+        self.horizontalLayout.addLayout(self.verticalLayoutSliders)
         for button in self.buttons:
-            self.layout.addWidget(button)
+            self.verticalLayoutButtons.addWidget(button)
         for label, slider in self.sliders:
-            self.layout.addWidget(label)
-            self.layout.addWidget(slider)
+            self.verticalLayoutSliders.addWidget(label)
+            self.verticalLayoutSliders.addWidget(slider)
         self.setCentralWidget(self.central_widget)
 
 
