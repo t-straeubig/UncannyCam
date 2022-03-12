@@ -70,11 +70,10 @@ class FaceSwap(Effect):
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
+
     def apply(self) -> np.ndarray:
         if keyboard.is_pressed("s"):
-            self.swapImg = Image(self.uncannyCam.img.image)
-            if not self.swapImg.landmarks:
-                self.swapImg = None
+            self.change_swap_image()
         return self.swap()
 
     def swap(self):
@@ -99,8 +98,12 @@ class FaceSwap(Effect):
         )
         return img
 
+    def change_swap_image(self):
+        self.swapImg = Image(self.uncannyCam.img.image)
+        if not self.swapImg.landmarks:
+            self.swapImg = None
+
     def alpha_blend_value(self):
-        print(self.slider_value / 10)
         return self.slider_value / 10
 
 
@@ -136,7 +139,6 @@ class FaceSymmetry(Effect):
         return img
 
     def alpha_blend_value(self):
-        print(self.slider_value / 10)
         return self.slider_value / 10
 
 

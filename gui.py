@@ -84,11 +84,17 @@ class StartWindow(QMainWindow):
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
         self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
+        self.setupSwapButton()
 
     def setupDefaultButton(self, text, filter):
         button = QPushButton(text, self.central_widget)
         button.clicked.connect(lambda: self.camera.toggleFilter(filter))
         self.buttons.append(button)
+
+    def setupSwapButton(self):
+        self.swapButton = QPushButton("Capture Swap Image", self.central_widget)
+        self.swapButton.clicked.connect(self.camera.faceSwap.change_swap_image)
+        
 
     def setupSliders(self):
         self.sliders = []
@@ -162,6 +168,7 @@ class StartWindow(QMainWindow):
         for label, slider in self.sliders:
             self.verticalLayoutSliders.addWidget(label)
             self.verticalLayoutSliders.addWidget(slider)
+        self.layout.addWidget(self.swapButton)
         self.setCentralWidget(self.central_widget)
 
 
