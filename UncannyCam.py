@@ -1,20 +1,15 @@
 from typing import List
 import cv2
 import pyvirtualcam
-
-from mediapipe.python.solutions import (
-    drawing_utils as mpDraw,
-    face_mesh as mpFaceMesh,
-    selfie_segmentation as mpSelfieSeg,
-)
 from effects import (
     DebuggingFilter,
     Effect,
     EyeFreezer,
     FaceFilter,
     FaceSwap,
+    HueShift,
     CheeksFilter,
-    FaceSymmetry,
+    FaceSymmetry
 )
 
 from imagetools import Image
@@ -33,11 +28,10 @@ class UncannyCam:
         self.morphologyFilter = FaceFilter(self, bilateralFilter=False)
         self.eyeFreezer = EyeFreezer(self)
         self.faceSwap = FaceSwap(self)
+        self.hueShift = HueShift(self)
         self.cheeksFilter = CheeksFilter(self)
         self.faceSymmetry = FaceSymmetry(self)
 
-        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 

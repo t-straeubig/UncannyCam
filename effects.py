@@ -183,8 +183,41 @@ class FaceFilter(Effect):
             0: self.filter_face,
             1: self.filter_person,
             2: self.filter_triangle,
-            3: self.filter_image,
+            3: self.filter_image
         }[self.mode]()
+
+
+class HueShift(Effect):
+
+    def apply(self) -> np.ndarray:
+        image = self.uncannyCam.img
+        raw = self.uncannyCam.img.image
+
+        # converting image into LAB and calculate the average color of part of the face
+        raw_lab = cv2.cvtColor(raw, cv2.COLOR_BGR2LAB)
+        rect = np.float32(image.get_denormalized_landmarks([10, 151, 337, 338]))
+        x, y, w, h = cv2.boundingRect(rect)
+        avg_color = raw_lab[y : y + h, x : x + w].mean(axis=0).mean(axis=0)
+
+        # calculate distances to the average skin color
+        l_diff, a_diff, b_diff = cv2.split(raw_lab - avg_color)
+        l_diff = np.square(l_diff/255)
+        a_diff = np.square(a_diff/255)
+        b_diff = np.square(b_diff/255)
+
+        # converting the color distance to a mask for the effect
+        factor = 1-np.clip(20*(l_diff+a_diff+b_diff),0,1)
+        factor = np.repeat(factor[:, :, np.newaxis], 3, axis=2)
+
+        # define the effect to be applied
+        shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
+        shifted[:,:,0] = np.uint8(np.mod(np.int32(shifted[:,:,0])+180+60, 180))
+        shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
+
+        # apply the effect
+        new_raw = np.uint8(factor*shifted + (1-factor)*raw)
+        image.image = new_raw
+        return image
 
 
 class CheeksFilter(Effect):
@@ -220,14 +253,7 @@ class CheeksFilter(Effect):
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 
     def denormalized_polygons(self):
-        polygons = []
-        for index, _ in enumerate(self.polygon_indices):
-            polygons.append(
-                self.uncannyCam.img.get_denormalized_landmarks(
-                    self.polygon_indices[index]
-                )
-            )
-        return polygons
+        return self.uncannyCam.img.get_denormalized_landmarks_nested(self.polygon_indices)
 
 
 class DebuggingFilter(Effect):
