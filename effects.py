@@ -143,44 +143,35 @@ class FaceFilter(Effect):
 
 class HueShift(Effect):
 
-    def __init__(self, uncannyCam) -> None:
-        super().__init__(uncannyCam)
-        self.lower = np.array([0, 48, 80], dtype = "uint8")
-        self.upper = np.array([20, 255, 255], dtype = "uint8")
-        # self.lower = np.array([0, 10, 60], dtype = "uint8")
-        # self.upper = np.array([20, 150, 255], dtype = "uint8")
-        
-    # def skinMask(self, image):
-    #     polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
-    #     polygon_denormalized = image.get_denormalized_landmarks(polygon)
-    #     return utils.getMask(image.image.shape, polygon_denormalized)
-
-    def skinMask(self, raw_hsv):
-        """https://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/"""
-        mask = cv2.inRange(raw_hsv, self.lower, self.upper)
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-        # mask = cv2.erode(mask, kernel, iterations = 2)
-        # mask = cv2.dilate(mask, kernel, iterations = 2)
-        # mask = cv2.GaussianBlur(mask, (3, 3), 0)
-        # cv2.imshow("mask", mask)
-        mask = np.repeat(mask[:,:,np.newaxis], 3, axis=2)
-        return mask
-
     def apply(self) -> np.ndarray:
+        image = self.uncannyCam.img
         raw = self.uncannyCam.img.image
-        raw = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
-        shifted = np.copy(raw)
-        
-        # shifted[:,:,0] = shifted[:,:,0] - 20
-        # shifted[:,:,1] = shifted[:,:,1] + 60
-        shifted[:,:,1] = shifted[:,:,1] - 60
-        
-        # new_raw = np.where(self.skinMask(self.uncannyCam.img), shifted, raw)
-        new_raw = np.where(self.skinMask(raw), shifted, raw)
 
-        new_raw = cv2.cvtColor(new_raw, cv2.COLOR_HSV2BGR)
-        self.uncannyCam.img.image = new_raw
-        return self.uncannyCam.img
+        # converting image into LAB and calculate the average color of part of the face
+        raw_lab = cv2.cvtColor(raw, cv2.COLOR_BGR2LAB)
+        rect = np.float32(image.get_denormalized_landmarks([10, 151, 337, 338]))
+        x, y, w, h = cv2.boundingRect(rect)
+        avg_color = raw_lab[y : y + h, x : x + w].mean(axis=0).mean(axis=0)
+
+        # calculate distances to the average skin color
+        l_diff, a_diff, b_diff = cv2.split(raw_lab - avg_color)
+        l_diff = np.square(l_diff/255)
+        a_diff = np.square(a_diff/255)
+        b_diff = np.square(b_diff/255)
+
+        # converting the color distance to a mask for the effect
+        factor = 1-np.clip(20*(l_diff+a_diff+b_diff),0,1)
+        factor = np.repeat(factor[:, :, np.newaxis], 3, axis=2)
+
+        # define the effect to be applied
+        shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
+        shifted[:,:,0] = np.uint8(np.mod(np.int32(shifted[:,:,0])+180+60, 180))
+        shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
+
+        # apply the effect
+        new_raw = np.uint8(factor*shifted + (1-factor)*raw)
+        image.image = new_raw
+        return image
 
 
 class CheeksFilter(Effect):
@@ -208,8 +199,8 @@ class CheeksFilter(Effect):
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        diff_hue = 60
-        h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
+        diff_hue = -20
+        h_new = np.mod(h.astype(np.int32) + diff_hue, 180).astype(np.uint8)
         hsv_new = cv2.merge([h_new, s, v])
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 

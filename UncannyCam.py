@@ -45,12 +45,16 @@ class UncannyCam:
             self.effects.append(self.eyeFreezer)
 
     def get_frame(self):
-        success, self.imgRaw = self.cap.read()
+        success, self.img_raw = self.cap.read()
 
         if not success:
             print("No Image could be captured")
 
-        self.img = Image(self.imgRaw, selfieseg=True)
+        if not self.img:
+            self.img = Image(self.img_raw, selfieseg=True)
+        else:
+            self.img.change_image(self.img_raw, reprocess=True)
+        
         for effect in self.effects:
             self.img = effect.apply()
 
