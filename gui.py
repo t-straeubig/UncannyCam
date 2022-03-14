@@ -94,7 +94,6 @@ class StartWindow(QMainWindow):
     def setupSwapButton(self):
         self.swapButton = QPushButton("Capture Swap Image", self.central_widget)
         self.swapButton.clicked.connect(self.camera.faceSwap.change_swap_image)
-        
 
     def setupSliders(self):
         self.sliders = []

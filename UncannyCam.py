@@ -9,7 +9,7 @@ from effects import (
     FaceSwap,
     HueShift,
     CheeksFilter,
-    FaceSymmetry
+    FaceSymmetry,
 )
 
 from imagetools import Image
