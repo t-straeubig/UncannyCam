@@ -26,6 +26,18 @@ class Effect(ABC):
     def set_slider_value(self, value):
         self.slider_value = value
 
+    def alpha_blend_value(self):
+        return self.slider_value / 10
+
+    def alpha_blend(self, new_img: Image, old_image: Image):
+        new_img.image = cv2.addWeighted(
+            old_image.image,
+            1 - self.alpha_blend_value(),
+            new_img.image,
+            self.alpha_blend_value(),
+            0,
+        )
+        return new_img
 
 class EyeFreezer(Effect):
     def __init__(self, uncannyCam) -> None:
@@ -70,15 +82,14 @@ class FaceSwap(Effect):
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
-
     def apply(self) -> np.ndarray:
+        old_image = self.uncannyCam.img.copy()
         if keyboard.is_pressed("s"):
             self.change_swap_image()
-        return self.swap()
+        return self.alpha_blend(self.swap(), old_image)
 
     def swap(self):
         img = self.uncannyCam.img
-        old_image = self.uncannyCam.img.copy()
         if not img.landmarks or not self.swapImg:
             return img
         img.image = triangles.insertTriangles(
@@ -89,13 +100,6 @@ class FaceSwap(Effect):
             self.leaveOutPoints,
             withSeamlessClone=True,
         )
-        img.image = cv2.addWeighted(
-            old_image.image,
-            1 - self.alpha_blend_value(),
-            img.image,
-            self.alpha_blend_value(),
-            0,
-        )
         return img
 
     def change_swap_image(self):
@@ -103,8 +107,6 @@ class FaceSwap(Effect):
         if not self.swapImg.landmarks:
             self.swapImg = None
 
-    def alpha_blend_value(self):
-        return self.slider_value / 10
 
 
 class FaceSymmetry(Effect):
@@ -129,17 +131,7 @@ class FaceSymmetry(Effect):
         img.image = triangles.insertTriangles(
             img, self.flipped, self.triangles, self.points, withSeamlessClone=True
         )
-        img.image = cv2.addWeighted(
-            old_image.image,
-            1 - self.alpha_blend_value(),
-            img.image,
-            self.alpha_blend_value(),
-            0,
-        )
-        return img
-
-    def alpha_blend_value(self):
-        return self.slider_value / 10
+        return self.alpha_blend(img, old_image)
 
 
 class FaceFilter(Effect):
@@ -151,6 +143,7 @@ class FaceFilter(Effect):
         else:
             self.slider_value = 3
         self.bilateralFilter = bilateralFilter
+
 
     def filter_face(self):
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
@@ -171,7 +164,7 @@ class FaceFilter(Effect):
         if self.bilateralFilter:
             self.uncannyCam.img.image = utils.cudaBilateralFilter(
                 self.uncannyCam.img.image, self.slider_value
-            )
+            ) 
         else:
             self.uncannyCam.img.image = utils.cudaMorphologyFilter(
                 self.uncannyCam.img.image, self.slider_value
@@ -186,6 +179,16 @@ class FaceFilter(Effect):
             3: self.filter_image,
         }[self.mode]()
 
+class NoiseFilter(Effect):
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.slider_value = 0
+
+    def apply(self) -> np.ndarray:
+        old_image = self.uncannyCam.img.copy()
+        img = self.uncannyCam.img
+        img.image = utils.noiseFilter(img.image)
+        return self.alpha_blend(img, old_image)
 
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:

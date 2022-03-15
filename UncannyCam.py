@@ -15,6 +15,7 @@ from effects import (
     FaceSwap,
     CheeksFilter,
     FaceSymmetry,
+    NoiseFilter,
 )
 
 from imagetools import Image
@@ -35,6 +36,7 @@ class UncannyCam:
         self.faceSwap = FaceSwap(self)
         self.cheeksFilter = CheeksFilter(self)
         self.faceSymmetry = FaceSymmetry(self)
+        self.noiseFilter = NoiseFilter(self)
 
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)

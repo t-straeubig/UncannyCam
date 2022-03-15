@@ -84,6 +84,7 @@ class StartWindow(QMainWindow):
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
         self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
+        self.setupDefaultButton("Noise", self.camera.noiseFilter)
         self.setupSwapButton()
 
     def setupDefaultButton(self, text, filter):
@@ -94,7 +95,6 @@ class StartWindow(QMainWindow):
     def setupSwapButton(self):
         self.swapButton = QPushButton("Capture Swap Image", self.central_widget)
         self.swapButton.clicked.connect(self.camera.faceSwap.change_swap_image)
-        
 
     def setupSliders(self):
         self.sliders = []
@@ -139,6 +139,13 @@ class StartWindow(QMainWindow):
             max_range=180,
             default_value=self.camera.cheeksFilter.slider_value,
         )
+        self.setupDefaultSlider(
+            "Noise",
+            self.camera.noiseFilter,
+            max_range=10,
+            default_value=self.camera.noiseFilter.slider_value,
+        )
+
 
     def setupDefaultSlider(
         self, text, filter, min_range=0, max_range=1, default_value=0

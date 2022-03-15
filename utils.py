@@ -79,6 +79,19 @@ def cudaMorphologyFilter(image, size):
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
 
+def noiseFilter(image):
+    row, col, _ = image.shape
+    mean = 0
+    var = 0.1
+    sigma = var**0.2
+    gauss = np.random.normal(mean, sigma, (row, col, 1))
+    gauss = gauss.reshape(row, col, 1)
+    mask = cv2.cvtColor(np.uint8(gauss), cv2.COLOR_GRAY2BGR)
+    noise = np.random.normal(0.5, 0.5, (row, col, 1))
+    noise = np.uint8(noise * 255)
+    return cv2.cvtColor(noise, cv2.COLOR_GRAY2BGR)
+
+
 def distinct_indices(indices):
     distinct = set()
     for poly in indices:
