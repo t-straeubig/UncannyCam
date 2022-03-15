@@ -39,6 +39,7 @@ class Effect(ABC):
         )
         return new_img
 
+
 class EyeFreezer(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
@@ -108,7 +109,6 @@ class FaceSwap(Effect):
             self.swapImg = None
 
 
-
 class FaceSymmetry(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
@@ -144,7 +144,6 @@ class FaceFilter(Effect):
             self.slider_value = 3
         self.bilateralFilter = bilateralFilter
 
-
     def filter_face(self):
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
         self.uncannyCam.img.filter_polygon(polygon)
@@ -164,7 +163,7 @@ class FaceFilter(Effect):
         if self.bilateralFilter:
             self.uncannyCam.img.image = utils.cudaBilateralFilter(
                 self.uncannyCam.img.image, self.slider_value
-            ) 
+            )
         else:
             self.uncannyCam.img.image = utils.cudaMorphologyFilter(
                 self.uncannyCam.img.image, self.slider_value
@@ -179,6 +178,7 @@ class FaceFilter(Effect):
             3: self.filter_image,
         }[self.mode]()
 
+
 class NoiseFilter(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
@@ -189,6 +189,7 @@ class NoiseFilter(Effect):
         img = self.uncannyCam.img
         img.image = utils.noiseFilter(img.image)
         return self.alpha_blend(img, old_image)
+
 
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:
