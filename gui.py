@@ -142,7 +142,7 @@ class StartWindow(QMainWindow):
         self.setupDefaultSlider(
             "Noise",
             self.camera.noiseFilter,
-            max_range=10,
+            max_range=20,
             default_value=self.camera.noiseFilter.slider_value,
         )
 

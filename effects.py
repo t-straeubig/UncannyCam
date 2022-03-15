@@ -190,6 +190,9 @@ class NoiseFilter(Effect):
         img.image = utils.noiseFilter(img.image)
         return self.alpha_blend(img, old_image)
 
+    def alpha_blend_value(self):
+        return self.slider_value / 100
+
 
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:
