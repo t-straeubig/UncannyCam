@@ -84,7 +84,8 @@ class StartWindow(QMainWindow):
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
         self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
-        self.setupDefaultButton("Noise", self.camera.noiseFilter)
+        self.setupDefaultButton("Basic Noise", self.camera.basicNoiseFilter)
+        self.setupDefaultButton("Perlin Noise", self.camera.perlinNoiseFilter)
         self.setupSwapButton()
 
     def setupDefaultButton(self, text, filter):
@@ -140,10 +141,16 @@ class StartWindow(QMainWindow):
             default_value=self.camera.cheeksFilter.slider_value,
         )
         self.setupDefaultSlider(
-            "Noise",
-            self.camera.noiseFilter,
+            "Basic Noise",
+            self.camera.basicNoiseFilter,
             max_range=20,
-            default_value=self.camera.noiseFilter.slider_value,
+            default_value=self.camera.basicNoiseFilter.slider_value,
+        )
+        self.setupDefaultSlider(
+            "Perlin Noise",
+            self.camera.perlinNoiseFilter,
+            max_range=20,
+            default_value=self.camera.perlinNoiseFilter.slider_value,
         )
 
     def setupDefaultSlider(

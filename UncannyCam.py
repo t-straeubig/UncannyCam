@@ -36,7 +36,8 @@ class UncannyCam:
         self.faceSwap = FaceSwap(self)
         self.cheeksFilter = CheeksFilter(self)
         self.faceSymmetry = FaceSymmetry(self)
-        self.noiseFilter = NoiseFilter(self)
+        self.basicNoiseFilter = NoiseFilter(self)
+        self.perlinNoiseFilter = NoiseFilter(self, 1)
 
         self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
         self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
