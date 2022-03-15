@@ -189,21 +189,23 @@ class NoiseFilter(Effect):
     def perlin_noise(self):
         old_image = self.uncannyCam.img.copy()
         img = self.uncannyCam.img
-        perlin_noise = generate_perlin_noise_2d((img.image.shape[0], img.image.shape[1]), (1,2))
-        perlin_noise = np.uint8((perlin_noise*0.5 + 0.5)*255)
+        perlin_noise = generate_perlin_noise_2d(
+            (img.image.shape[0], img.image.shape[1]), (1, 2)
+        )
+        perlin_noise = np.uint8((perlin_noise * 0.5 + 0.5) * 255)
         hsv = cv2.cvtColor(img.image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         v = np.maximum(v, perlin_noise)
         hsv_new = cv2.merge([h, s, v])
         img.image = cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
-     
+
         return self.alpha_blend(img, old_image)
 
     def basic_noise(self):
         old_image = self.uncannyCam.img.copy()
         img = self.uncannyCam.img
         img.image = utils.noiseFilter(img.image)
-        return self.alpha_blend(img, old_image) 
+        return self.alpha_blend(img, old_image)
 
     def apply(self) -> np.ndarray:
         return {

@@ -92,4 +92,3 @@ def distinct_indices(indices):
         for point in poly:
             distinct.add(point)
     return list(distinct)
-
