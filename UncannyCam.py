@@ -10,6 +10,7 @@ from effects import (
     HueShift,
     CheeksFilter,
     FaceSymmetry,
+    NoiseFilter,
 )
 
 from imagetools import Image
@@ -31,6 +32,8 @@ class UncannyCam:
         self.hueShift = HueShift(self)
         self.cheeksFilter = CheeksFilter(self)
         self.faceSymmetry = FaceSymmetry(self)
+        self.basicNoiseFilter = NoiseFilter(self)
+        self.perlinNoiseFilter = NoiseFilter(self, 1)
 
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
