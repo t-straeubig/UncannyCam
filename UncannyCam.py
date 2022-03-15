@@ -1,18 +1,13 @@
 from typing import List
 import cv2
 import pyvirtualcam
-
-from mediapipe.python.solutions import (
-    drawing_utils as mpDraw,
-    face_mesh as mpFaceMesh,
-    selfie_segmentation as mpSelfieSeg,
-)
 from effects import (
     DebuggingFilter,
     Effect,
     EyeFreezer,
     FaceFilter,
     FaceSwap,
+    HueShift,
     CheeksFilter,
     FaceSymmetry,
 )
@@ -27,34 +22,42 @@ class UncannyCam:
         self.cap = cv2.VideoCapture(0)
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         self.effects: List[Effect] = []
-        self.effects.append(CheeksFilter(self))
-        self.faceFilter = FaceFilter(self)
+        self.bilateralFilter = FaceFilter(self)
+        self.morphologyFilter = FaceFilter(self, bilateralFilter=False)
         self.eyeFreezer = EyeFreezer(self)
-        self.faceMesh = mpFaceMesh.FaceMesh(refine_landmarks=True)
-        self.selfieSeg = mpSelfieSeg.SelfieSegmentation(model_selection=0)
-        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=20)
+        self.faceSwap = FaceSwap(self)
+        self.hueShift = HueShift(self)
+        self.cheeksFilter = CheeksFilter(self)
+        self.faceSymmetry = FaceSymmetry(self)
+
+        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 
-    def toogleFaceFilter(self):
-        if self.faceFilter in self.effects:
-            self.effects.remove(self.faceFilter)
+    def toggleFilter(self, filter):
+        if filter in self.effects:
+            self.effects.remove(filter)
         else:
-            self.effects.append(self.faceFilter)
+            self.effects.append(filter)
 
-    def toogleEyeFreezer(self):
+    def toggleEyeFreezer(self):
         if self.eyeFreezer in self.effects:
             self.effects.remove(self.eyeFreezer)
         else:
             self.effects.append(self.eyeFreezer)
 
     def get_frame(self):
-        success, self.imgRaw = self.cap.read()
+        success, self.img_raw = self.cap.read()
 
         if not success:
             print("No Image could be captured")
 
-        self.img = Image(self.imgRaw, selfieseg=True)
+        if not self.img:
+            self.img = Image(self.img_raw, selfieseg=True)
+        else:
+            self.img.change_image(self.img_raw, reprocess=True)
+
         for effect in self.effects:
             self.img = effect.apply()
 

@@ -60,14 +60,21 @@ def cudaGaussianFilter(image):
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
 
-def cudaCustomizedFilter(image):
+def cudaBilateralFilter(image, kernel_size):
     # Use GPU Mat to speed up filtering
     cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
     cudaImg.upload(imageBGR_RGBA(image))
-    filter = cv2.cuda.createMorphologyFilter(cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(3))
-    filter.apply(cudaImg, cudaImg)
-    cudaImg = cv2.cuda.bilateralFilter(cudaImg, 10, 30, 30)
+    cudaImg = cv2.cuda.bilateralFilter(cudaImg, 10, kernel_size, kernel_size)
+    result = cudaImg.download()
+    return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
+
+def cudaMorphologyFilter(image, size):
+    # Use GPU Mat to speed up filtering
+    cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
+    cudaImg.upload(imageBGR_RGBA(image))
+    filter = cv2.cuda.createMorphologyFilter(cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(size))
+    filter.apply(cudaImg, cudaImg)
     result = cudaImg.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 

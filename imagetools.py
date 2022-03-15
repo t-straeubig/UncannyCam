@@ -79,7 +79,7 @@ class Image:
         """Applies a blur filter to the image inside the (indexed) polygon"""
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
         if withCuda:
-            blurred = utils.cudaCustomizedFilter(self.image)
+            blurred = utils.cudaBilateralFilter(self.image)
         else:
             blurred = cv2.bilateralFilter(self.image, 20, 50, 50)
         mask = utils.getMask(self.image.shape, polygon_denormalized)
@@ -87,7 +87,7 @@ class Image:
 
     def filterTriangle(self, triangleIndices):
         denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
-        blurred = utils.cudaCustomizedFilter(self.image)
+        blurred = utils.cudaBilateralFilter(self.image)
         mask = utils.getMask(self.image.shape, denormalizedTriangle)
         self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
 
@@ -99,7 +99,7 @@ class Image:
             np.stack((self.selfieSeg_results.segmentation_mask,) * 3, axis=-1) > 0.1
         )
         if withCuda:
-            blurred = utils.cudaCustomizedFilter(self.image)
+            blurred = utils.cudaBilateralFilter(self.image)
         else:
             blurred = cv2.bilateralFilter(self.image, 5, 50, 50)
         self.image = np.where(condition, blurred, self.image)

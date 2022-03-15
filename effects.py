@@ -17,9 +17,13 @@ class Effect(ABC):
     def __init__(self, uncannyCam) -> None:
         super().__init__()
         self.uncannyCam = uncannyCam
+        self.slider_value = 0
 
     def apply(self) -> np.ndarray:
         return self.uncannyCam.img
+
+    def set_slider_value(self, value):
+        self.slider_value = value
 
 
 class EyeFreezer(Effect):
@@ -29,6 +33,7 @@ class EyeFreezer(Effect):
         self.landmarks = []
         self.eye_triangles = None
         self.eye_points = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
+        self.slider_value = 5
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -42,7 +47,7 @@ class EyeFreezer(Effect):
 
         self.images.append(img.copy())
 
-        if len(self.images) < 7:
+        if len(self.images) <= self.slider_value or self.slider_value == 1:
             return img
         swap_img: Image = self.images.pop(0)
         img.image = triangles.insertTriangles(
@@ -50,24 +55,28 @@ class EyeFreezer(Effect):
         )
         return img
 
+    def set_slider_value(self, value):
+        super().set_slider_value(value)
+        self.images = []
+
 
 class FaceSwap(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.swapImg = None
+        self.slider_value = 10
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
 
     def apply(self) -> np.ndarray:
         if keyboard.is_pressed("s"):
-            self.swapImg = Image(self.uncannyCam.img_raw)
-            if not self.swapImg.landmarks:
-                self.swapImg = None
+            self.change_swap_image()
         return self.swap()
 
     def swap(self):
         img = self.uncannyCam.img
+        old_image = self.uncannyCam.img.copy()
         if not img.landmarks or not self.swapImg:
             return img
         img.image = triangles.insertTriangles(
@@ -78,7 +87,22 @@ class FaceSwap(Effect):
             self.leaveOutPoints,
             withSeamlessClone=True,
         )
+        img.image = cv2.addWeighted(
+            old_image.image,
+            1 - self.alpha_blend_value(),
+            img.image,
+            self.alpha_blend_value(),
+            0,
+        )
         return img
+
+    def change_swap_image(self):
+        self.swapImg = Image(self.uncannyCam.img.image)
+        if not self.swapImg.landmarks:
+            self.swapImg = None
+
+    def alpha_blend_value(self):
+        return self.slider_value / 10
 
 
 class FaceSymmetry(Effect):
@@ -87,8 +111,10 @@ class FaceSymmetry(Effect):
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.flipped = None
+        self.slider_value = 10
 
     def apply(self) -> np.ndarray:
+        old_image = self.uncannyCam.img.copy()
         img = self.uncannyCam.img
         if not img.landmarks:
             return img
@@ -101,13 +127,28 @@ class FaceSymmetry(Effect):
         img.image = triangles.insertTriangles(
             img, self.flipped, self.triangles, self.points, withSeamlessClone=True
         )
+        img.image = cv2.addWeighted(
+            old_image.image,
+            1 - self.alpha_blend_value(),
+            img.image,
+            self.alpha_blend_value(),
+            0,
+        )
         return img
+
+    def alpha_blend_value(self):
+        return self.slider_value / 10
 
 
 class FaceFilter(Effect):
-    def __init__(self, uncannyCam, mode=3) -> None:
+    def __init__(self, uncannyCam, mode=3, bilateralFilter=True) -> None:
         super().__init__(uncannyCam)
         self.mode = mode
+        if bilateralFilter:
+            self.slider_value = 30
+        else:
+            self.slider_value = 3
+        self.bilateralFilter = bilateralFilter
 
     def filter_face(self):
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
@@ -122,14 +163,17 @@ class FaceFilter(Effect):
         indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
         triangle = [indices[50], indices[260], indices[150]]
         self.uncannyCam.img.filter_polygon(triangle)
-        # if self.uncannyCam.img.landmarks:
-        #     self.uncannyCam.img.drawPolygons([self.uncannyCam.img.get_denormalized_landmarks(triangle)])
         return self.uncannyCam.img
 
-    def filterImage(self):
-        self.uncannyCam.img.image = utils.cudaCustomizedFilter(
-            self.uncannyCam.img.image
-        )
+    def filter_image(self):
+        if self.bilateralFilter:
+            self.uncannyCam.img.image = utils.cudaBilateralFilter(
+                self.uncannyCam.img.image, self.slider_value
+            )
+        else:
+            self.uncannyCam.img.image = utils.cudaMorphologyFilter(
+                self.uncannyCam.img.image, self.slider_value
+            )
         return self.uncannyCam.img
 
     def apply(self) -> np.ndarray:
@@ -141,6 +185,38 @@ class FaceFilter(Effect):
         }[self.mode]()
 
 
+class HueShift(Effect):
+    def apply(self) -> np.ndarray:
+        image = self.uncannyCam.img
+        raw = self.uncannyCam.img.image
+
+        # converting image into LAB and calculate the average color of part of the face
+        raw_lab = cv2.cvtColor(raw, cv2.COLOR_BGR2LAB)
+        rect = np.float32(image.get_denormalized_landmarks([10, 151, 337, 338]))
+        x, y, w, h = cv2.boundingRect(rect)
+        avg_color = raw_lab[y : y + h, x : x + w].mean(axis=0).mean(axis=0)
+
+        # calculate distances to the average skin color
+        l_diff, a_diff, b_diff = cv2.split(raw_lab - avg_color)
+        l_diff = np.square(l_diff / 255)
+        a_diff = np.square(a_diff / 255)
+        b_diff = np.square(b_diff / 255)
+
+        # converting the color distance to a mask for the effect
+        factor = 1 - np.clip(20 * (l_diff + a_diff + b_diff), 0, 1)
+        factor = np.repeat(factor[:, :, np.newaxis], 3, axis=2)
+
+        # define the effect to be applied
+        shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
+        shifted[:, :, 0] = np.uint8(np.mod(np.int32(shifted[:, :, 0]) + 180 + 60, 180))
+        shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
+
+        # apply the effect
+        new_raw = np.uint8(factor * shifted + (1 - factor) * raw)
+        image.image = new_raw
+        return image
+
+
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:
         super().__init__(uncannyCam)
@@ -150,36 +226,33 @@ class CheeksFilter(Effect):
             [346, 347, 329, 423, 376, 427],
         ]
         self.withCuda = withCuda
+        self.slider_value = 10
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
         shifted = self.hueShift(img.image)
+        if img.landmarks:
+            mask = utils.getBlurredMask(
+                img.image.shape, self.denormalized_polygons(), self.withCuda
+            )
 
-        mask = utils.getBlurredMask(
-            img.image.shape, self.denormalized_polygons(), self.withCuda
-        )
-
-        combined = shifted * mask + img.image * (1 - mask)
-        img.image = combined.astype(np.uint8)
+            img.image = np.uint8(shifted * mask + img.image * (1 - mask))
         return img
+
+    def hue_difference(self):
+        return 180 - self.slider_value
 
     def hueShift(self, image_bgr):
         hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        diff_hue = 60
-        h_new = np.mod(h + diff_hue, 180).astype(np.uint8)
+        h_new = np.mod(h + self.hue_difference(), 180).astype(np.uint8)
         hsv_new = cv2.merge([h_new, s, v])
         return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 
     def denormalized_polygons(self):
-        polygons = []
-        for index, _ in enumerate(self.polygon_indices):
-            polygons.append(
-                self.uncannyCam.img.get_denormalized_landmarks(
-                    self.polygon_indices[index]
-                )
-            )
-        return polygons
+        return self.uncannyCam.img.get_denormalized_landmarks_nested(
+            self.polygon_indices
+        )
 
 
 class DebuggingFilter(Effect):
