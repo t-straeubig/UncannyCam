@@ -40,34 +40,78 @@ class Effect(ABC):
         return new_img
 
 
-class EyeFreezer(Effect):
+class EyeEffect(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.images = []
         self.landmarks = []
-        self.eye_triangles = None
-        self.eye_points = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
-        self.slider_value = 5
+        self.eye_triangles = []
+        self.eye_points = [
+            utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
+            utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
+        ]
+        self.slider_value = 1
+        self.swap_image = None
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
         if not img.landmarks:
             return img
 
-        if self.eye_triangles is None:
-            self.eye_triangles = triangles.getTriangleIndices(
-                img, mpFaceMesh.FACEMESH_LEFT_EYE
+        if not self.eye_triangles:
+            self.eye_triangles.append(
+                triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_LEFT_EYE)
+            )
+            self.eye_triangles.append(
+                triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_RIGHT_EYE)
             )
 
         self.images.append(img.copy())
-
-        if len(self.images) <= self.slider_value or self.slider_value == 1:
+        if self.is_deactivated():
             return img
-        swap_img: Image = self.images.pop(0)
+
+        return self.swap(img)
+
+    def swap(self, img):
+        swap_img: Image = self.get_swap_image()
         img.image = triangles.insertTriangles(
-            img, swap_img, self.eye_triangles, self.eye_points
+            img, swap_img, self.eye_triangles[0], self.eye_points[0]
         )
         return img
+
+    def is_deactivated(self):
+        return self.slider_value == 0
+
+    def get_swap_image(self):
+        return self.uncannyCam.img
+
+
+class EyeFreezer(EyeEffect):
+    def swap(self, img):
+        img = super().swap(img)
+        if self.slider_value == 2:
+            swap_img: Image = self.get_swap_image()
+            img.image = triangles.insertTriangles(
+                img, swap_img, self.eye_triangles[1], self.eye_points[1]
+            )
+        return img
+
+    def get_swap_image(self):
+        if len(self.images) > 1:
+            self.images.pop()
+        return self.images[0]
+
+
+class LazyEye(EyeEffect):
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.slider_value = 5
+
+    def is_deactivated(self):
+        return len(self.images) <= self.slider_value or self.slider_value == 1
+
+    def get_swap_image(self):
+        return self.images.pop(0)
 
     def set_slider_value(self, value):
         super().set_slider_value(value)
@@ -180,18 +224,23 @@ class FaceFilter(Effect):
 
 
 class NoiseFilter(Effect):
-    def __init__(self, uncannyCam, mode=0) -> None:
+    def __init__(self, uncannyCam, mode=0, precomputed=True) -> None:
         super().__init__(uncannyCam)
         self.slider_value = 0
         self.mode = mode
+        self.precomputed = precomputed
+        self.last_noise_index = 0 
+        self.repeat_counter = 0
 
     def perlin_noise(self):
         old_image = self.uncannyCam.img.copy()
         img = self.uncannyCam.img
-        perlin_noise = generate_perlin_noise_2d(
-            (img.image.shape[0], img.image.shape[1]), (1, 2)
-        )
-        perlin_noise = np.uint8((perlin_noise * 0.5 + 0.5) * 255)
+        if self.precomputed:
+            perlin_noise = self.load_noise(img.image.shape[0], img.image.shape[1])
+        else:
+            perlin_noise = generate_perlin_noise_2d(
+                (img.image.shape[0], img.image.shape[1]), (1, 2)
+            )
         hsv = cv2.cvtColor(img.image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         v = np.maximum(v, perlin_noise)
@@ -199,6 +248,16 @@ class NoiseFilter(Effect):
         img.image = cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 
         return self.alpha_blend(img, old_image)
+
+    def load_noise(self, height, width):
+        if self.repeat_counter < 3:
+            self.repeat_counter += 1
+        else:
+            self.last_noise_index = (self.last_noise_index + 1) % 10
+            self.repeat_counter = 0
+        img = cv2.imread(f'noise/noise{self.last_noise_index}.png', 0)
+        img = cv2.resize(img, (width, height))
+        return img
 
     def basic_noise(self):
         old_image = self.uncannyCam.img.copy()
@@ -215,7 +274,7 @@ class NoiseFilter(Effect):
     def alpha_blend_value(self):
         return self.slider_value / 100
 
-      
+
 class HueShift(Effect):
     def apply(self) -> np.ndarray:
         image = self.uncannyCam.img
@@ -247,7 +306,7 @@ class HueShift(Effect):
         image.image = new_raw
         return image
 
-      
+
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:
         super().__init__(uncannyCam)
