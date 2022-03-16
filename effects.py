@@ -39,12 +39,14 @@ class Effect(ABC):
         )
         return new_img
 
+    def reset(self):
+        pass
+
 
 class EyeEffect(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.images = []
-        self.landmarks = []
         self.eye_triangles = []
         self.eye_points = [
             utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
@@ -84,6 +86,11 @@ class EyeEffect(Effect):
 
     def get_swap_image(self):
         return self.uncannyCam.img
+
+    def reset(self):
+        self.images = []
+        self.eye_triangles = []
+        self.swap_image = None
 
 
 class EyeFreezer(EyeEffect):
@@ -229,7 +236,7 @@ class NoiseFilter(Effect):
         self.slider_value = 0
         self.mode = mode
         self.precomputed = precomputed
-        self.last_noise_index = 0 
+        self.last_noise_index = 0
         self.repeat_counter = 0
 
     def perlin_noise(self):
@@ -255,7 +262,7 @@ class NoiseFilter(Effect):
         else:
             self.last_noise_index = (self.last_noise_index + 1) % 10
             self.repeat_counter = 0
-        img = cv2.imread(f'noise/noise{self.last_noise_index}.png', 0)
+        img = cv2.imread(f"noise/noise{self.last_noise_index}.png", 0)
         img = cv2.resize(img, (width, height))
         return img
 
