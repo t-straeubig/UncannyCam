@@ -13,6 +13,7 @@ def insertTriangles(
     leaveOutPoints=None,
     withSeamlessClone=False,
 ):
+    """Moves the triangles specified by triangleIndices from swapImg to the coresponding places in img"""
     swap_triangles = getTriangles(swapImg, triangleIndices)
     triangles = getTriangles(img, triangleIndices)
 
@@ -61,8 +62,8 @@ def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=F
 
 # replace all new triangles with old triangles
 def displace(img, swapImg, triangle, triangleSwap):
-    rectSwap = cv2.boundingRect(triangleSwap)
-    (x, y, w, h) = rectSwap
+    """Move a triangle of swapImg specified by triangleSwap to a triangle of img specified by triangle"""
+    x, y, w, h = cv2.boundingRect(triangleSwap)
     croppedTriangle = swapImg[y : y + h, x : x + w]
     pointsOld = np.array(
         [
@@ -88,9 +89,9 @@ def displace(img, swapImg, triangle, triangleSwap):
 
     points = np.float32(points)
     pointsOld = np.float32(pointsOld)
-    matrix = cv2.getAffineTransform(pointsOld, points)
+    transform = cv2.getAffineTransform(pointsOld, points)
     warpedTriangle = cv2.warpAffine(
-        croppedTriangle, matrix, (w, h), flags=cv2.INTER_NEAREST
+        croppedTriangle, transform, (w, h), flags=cv2.INTER_NEAREST
     )
     warpedTriangle = cv2.bitwise_and(warpedTriangle, warpedTriangle, mask=croppedMask)
 
