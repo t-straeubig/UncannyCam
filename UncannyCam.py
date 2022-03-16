@@ -46,7 +46,6 @@ class UncannyCam:
         else:
             self.effects.append(filter)
 
-
     def get_frame(self):
         success, self.img_raw = self.cap.read()
 

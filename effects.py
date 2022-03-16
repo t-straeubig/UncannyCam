@@ -40,13 +40,16 @@ class Effect(ABC):
         return new_img
 
 
-class EyeFreezer(Effect):
+class EyeEffect(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.images = []
         self.landmarks = []
-        self.eye_triangles = None
-        self.eye_points = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
+        self.eye_triangles = []
+        self.eye_points = [
+            utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
+            utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
+        ]
         self.slider_value = 1
         self.swap_image = None
 
@@ -55,17 +58,24 @@ class EyeFreezer(Effect):
         if not img.landmarks:
             return img
 
-        if self.eye_triangles is None:
-            self.eye_triangles = triangles.getTriangleIndices(
-                img, mpFaceMesh.FACEMESH_LEFT_EYE
+        if not self.eye_triangles:
+            self.eye_triangles.append(
+                triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_LEFT_EYE)
+            )
+            self.eye_triangles.append(
+                triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_RIGHT_EYE)
             )
 
         self.images.append(img.copy())
         if self.is_deactivated():
             return img
+
+        return self.swap(img)
+
+    def swap(self, img):
         swap_img: Image = self.get_swap_image()
         img.image = triangles.insertTriangles(
-            img, swap_img, self.eye_triangles, self.eye_points
+            img, swap_img, self.eye_triangles[0], self.eye_points[0]
         )
         return img
 
@@ -73,13 +83,26 @@ class EyeFreezer(Effect):
         return self.slider_value == 0
 
     def get_swap_image(self):
+        return self.uncannyCam.img
+
+
+class EyeFreezer(EyeEffect):
+    def swap(self, img):
+        img = super().swap(img)
+        if self.slider_value == 2:
+            swap_img: Image = self.get_swap_image()
+            img.image = triangles.insertTriangles(
+                img, swap_img, self.eye_triangles[1], self.eye_points[1]
+            )
+        return img
+
+    def get_swap_image(self):
         if len(self.images) > 1:
             self.images.pop()
         return self.images[0]
 
 
-class LazyEye(EyeFreezer):
-
+class LazyEye(EyeEffect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
         self.slider_value = 5
@@ -93,6 +116,7 @@ class LazyEye(EyeFreezer):
     def set_slider_value(self, value):
         super().set_slider_value(value)
         self.images = []
+
 
 class FaceSwap(Effect):
     def __init__(self, uncannyCam) -> None:
@@ -235,7 +259,7 @@ class NoiseFilter(Effect):
     def alpha_blend_value(self):
         return self.slider_value / 100
 
-      
+
 class HueShift(Effect):
     def apply(self) -> np.ndarray:
         image = self.uncannyCam.img
@@ -267,7 +291,7 @@ class HueShift(Effect):
         image.image = new_raw
         return image
 
-      
+
 class CheeksFilter(Effect):
     def __init__(self, uncannyCam, withCuda=True) -> None:
         super().__init__(uncannyCam)
