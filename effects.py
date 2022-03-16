@@ -224,18 +224,23 @@ class FaceFilter(Effect):
 
 
 class NoiseFilter(Effect):
-    def __init__(self, uncannyCam, mode=0) -> None:
+    def __init__(self, uncannyCam, mode=0, precomputed=True) -> None:
         super().__init__(uncannyCam)
         self.slider_value = 0
         self.mode = mode
+        self.precomputed = precomputed
+        self.last_noise_index = 0 
+        self.repeat_counter = 0
 
     def perlin_noise(self):
         old_image = self.uncannyCam.img.copy()
         img = self.uncannyCam.img
-        perlin_noise = generate_perlin_noise_2d(
-            (img.image.shape[0], img.image.shape[1]), (1, 2)
-        )
-        perlin_noise = np.uint8((perlin_noise * 0.5 + 0.5) * 255)
+        if self.precomputed:
+            perlin_noise = self.load_noise(img.image.shape[0], img.image.shape[1])
+        else:
+            perlin_noise = generate_perlin_noise_2d(
+                (img.image.shape[0], img.image.shape[1]), (1, 2)
+            )
         hsv = cv2.cvtColor(img.image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         v = np.maximum(v, perlin_noise)
@@ -243,6 +248,16 @@ class NoiseFilter(Effect):
         img.image = cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
 
         return self.alpha_blend(img, old_image)
+
+    def load_noise(self, height, width):
+        if self.repeat_counter < 3:
+            self.repeat_counter += 1
+        else:
+            self.last_noise_index = (self.last_noise_index + 1) % 10
+            self.repeat_counter = 0
+        img = cv2.imread(f'noise/noise{self.last_noise_index}.png', 0)
+        img = cv2.resize(img, (width, height))
+        return img
 
     def basic_noise(self):
         old_image = self.uncannyCam.img.copy()
