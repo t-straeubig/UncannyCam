@@ -84,6 +84,7 @@ class StartWindow(QMainWindow):
         self.setupDefaultButton("Lazy Eye", self.camera.lazyEye)
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
+        self.setupDefaultButton("Skin Color Hue Shift", self.camera.hueShift)
         self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
         self.setupDefaultButton("Basic Noise", self.camera.basicNoiseFilter)
         self.setupDefaultButton("Perlin Noise", self.camera.perlinNoiseFilter)
@@ -138,9 +139,14 @@ class StartWindow(QMainWindow):
         self.setupDefaultSlider(
             "Face Swap",
             self.camera.faceSwap,
-            min_range=0,
             max_range=10,
             default_value=self.camera.faceSwap.slider_value,
+        )
+        self.setupDefaultSlider(
+            "Skin Hue",
+            self.camera.hueShift,
+            max_range=180,
+            default_value=self.camera.hueShift.slider_value,
         )
         self.setupDefaultSlider(
             "Cheeks Hue",

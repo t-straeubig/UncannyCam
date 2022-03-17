@@ -229,7 +229,7 @@ class NoiseFilter(Effect):
         self.slider_value = 0
         self.mode = mode
         self.precomputed = precomputed
-        self.last_noise_index = 0 
+        self.last_noise_index = 0
         self.repeat_counter = 0
 
     def perlin_noise(self):
@@ -255,7 +255,7 @@ class NoiseFilter(Effect):
         else:
             self.last_noise_index = (self.last_noise_index + 1) % 10
             self.repeat_counter = 0
-        img = cv2.imread(f'noise/noise{self.last_noise_index}.png', 0)
+        img = cv2.imread(f"noise/noise{self.last_noise_index}.png", 0)
         img = cv2.resize(img, (width, height))
         return img
 
@@ -276,6 +276,10 @@ class NoiseFilter(Effect):
 
 
 class HueShift(Effect):
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.slider_value = 60
+
     def apply(self) -> np.ndarray:
         image = self.uncannyCam.img
         raw = self.uncannyCam.img.image
@@ -298,7 +302,9 @@ class HueShift(Effect):
 
         # define the effect to be applied
         shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
-        shifted[:, :, 0] = np.uint8(np.mod(np.int32(shifted[:, :, 0]) + 180 + 60, 180))
+        shifted[:, :, 0] = np.uint8(
+            np.mod(np.int32(shifted[:, :, 0]) + self.slider_value, 180)
+        )
         shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
 
         # apply the effect
