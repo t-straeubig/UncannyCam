@@ -64,10 +64,11 @@ class EyeEffect(Effect):
             self.eye_triangles.append(
                 triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_RIGHT_EYE)
             )
-        if self.is_deactivated():
-            return img
 
         self.before_swap()
+
+        if self.is_deactivated():
+            return img
 
         return self.swap(img)
 
@@ -124,7 +125,7 @@ class LazyEye(EyeEffect):
         self.images.append(self.uncannyCam.img.copy())
 
     def is_deactivated(self):
-        return self.slider_value == 0 and len(self.images) == 0
+        return self.slider_value == 0 or len(self.images) == 0
 
     def get_swap_image(self):
         img = self.images.pop(0)
