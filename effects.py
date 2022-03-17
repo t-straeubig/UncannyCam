@@ -43,7 +43,6 @@ class Effect(ABC):
 class EyeEffect(Effect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.images = []
         self.landmarks = []
         self.eye_triangles = []
         self.eye_points = [
@@ -65,12 +64,15 @@ class EyeEffect(Effect):
             self.eye_triangles.append(
                 triangles.getTriangleIndices(img, mpFaceMesh.FACEMESH_RIGHT_EYE)
             )
-
-        self.images.append(img.copy())
         if self.is_deactivated():
             return img
 
+        self.before_swap()
+
         return self.swap(img)
+
+    def before_swap(self):
+        pass
 
     def swap(self, img):
         swap_img: Image = self.get_swap_image()
@@ -87,6 +89,14 @@ class EyeEffect(Effect):
 
 
 class EyeFreezer(EyeEffect):
+    def __init__(self, uncannyCam) -> None:
+        super().__init__(uncannyCam)
+        self.swap_image
+
+    def before_swap(self):
+        if not self.swap_image:
+            self.swap_image = self.uncannyCam.img.copy()
+
     def swap(self, img):
         img = super().swap(img)
         if self.slider_value == 2:
@@ -97,25 +107,31 @@ class EyeFreezer(EyeEffect):
         return img
 
     def get_swap_image(self):
-        if len(self.images) > 1:
-            self.images.pop()
-        return self.images[0]
+        return self.swap_image
 
 
 class LazyEye(EyeEffect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
+        self.images = []
         self.slider_value = 5
 
+    def before_swap(self):
+        print(self.slider_value, len(self.images))
+        if len(self.images) < self.slider_value:
+            # Add an additional image to the queue to make it longer
+            self.images.append(self.uncannyCam.img.copy())
+        self.images.append(self.uncannyCam.img.copy())
+
     def is_deactivated(self):
-        return len(self.images) <= self.slider_value or self.slider_value == 1
+        return self.slider_value == 0 and len(self.images) == 0
 
     def get_swap_image(self):
-        return self.images.pop(0)
-
-    def set_slider_value(self, value):
-        super().set_slider_value(value)
-        self.images = []
+        img = self.images.pop(0)
+        if len(self.images) > self.slider_value:
+            # Remove an additional image from the queue to make it shorter
+            img = self.images.pop(0)
+        return img
 
 
 class FaceSwap(Effect):

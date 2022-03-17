@@ -125,7 +125,6 @@ class StartWindow(QMainWindow):
         self.setupDefaultSlider(
             "Lazy Eye",
             self.camera.lazyEye,
-            min_range=1,
             max_range=12,
             default_value=self.camera.lazyEye.slider_value,
         )

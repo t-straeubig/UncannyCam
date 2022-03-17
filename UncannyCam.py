@@ -1,6 +1,7 @@
 from typing import List
 import cv2
 import pyvirtualcam
+import keyboard
 from effects import (
     DebuggingFilter,
     Effect,
@@ -22,6 +23,8 @@ class UncannyCam:
         self.img = None
         self.testMode = True
         self.cap = cv2.VideoCapture(0)
+        self.intensity = 10
+
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -46,6 +49,14 @@ class UncannyCam:
         else:
             self.effects.append(filter)
 
+    def decrease_intensity(self):
+        if self.intensity > 0:
+            self.intensity -= 1
+
+    def increase_intensity(self):
+        if self.intensity < 10:
+            self.intensity += 1
+
     def get_frame(self):
         success, self.img_raw = self.cap.read()
 
@@ -57,8 +68,18 @@ class UncannyCam:
         else:
             self.img.change_image(self.img_raw, reprocess=True)
 
+        if keyboard.is_pressed("l"):
+            self.decrease_intensity()
+        else:
+            self.increase_intensity()
+
         for effect in self.effects:
+            if effect == self.lazyEye:
+                prev_slider_value = effect.slider_value
+                effect.set_slider_value(int(effect.slider_value * self.intensity / 10))
             self.img = effect.apply()
+            if effect == self.lazyEye:
+                effect.set_slider_value(prev_slider_value)
 
         return self.img.image
 
