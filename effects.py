@@ -132,7 +132,10 @@ class FaceSwap(Effect):
         self.slider_value = 10
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
-        self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
+        self.leaveOutPoints = [
+            utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
+            utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
+        ]
 
     def apply(self) -> np.ndarray:
         old_image = self.uncannyCam.img.copy()
