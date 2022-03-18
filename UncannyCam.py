@@ -10,6 +10,7 @@ from effects import (
     HueShift,
     CheeksFilter,
     FaceSymmetry,
+    LazyEye,
     NoiseFilter,
 )
 
@@ -28,6 +29,7 @@ class UncannyCam:
         self.bilateralFilter = FaceFilter(self)
         self.morphologyFilter = FaceFilter(self, bilateralFilter=False)
         self.eyeFreezer = EyeFreezer(self)
+        self.lazyEye = LazyEye(self)
         self.faceSwap = FaceSwap(self)
         self.hueShift = HueShift(self)
         self.cheeksFilter = CheeksFilter(self)
@@ -41,14 +43,9 @@ class UncannyCam:
     def toggleFilter(self, filter):
         if filter in self.effects:
             self.effects.remove(filter)
+            filter.reset()
         else:
             self.effects.append(filter)
-
-    def toggleEyeFreezer(self):
-        if self.eyeFreezer in self.effects:
-            self.effects.remove(self.eyeFreezer)
-        else:
-            self.effects.append(self.eyeFreezer)
 
     def get_frame(self):
         success, self.img_raw = self.cap.read()

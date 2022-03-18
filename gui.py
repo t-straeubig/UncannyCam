@@ -81,6 +81,7 @@ class StartWindow(QMainWindow):
         self.setupDefaultButton("Smoothing Filter", self.camera.bilateralFilter)
         self.setupDefaultButton("Morphology Filter", self.camera.morphologyFilter)
         self.setupDefaultButton("Eye Freezer", self.camera.eyeFreezer)
+        self.setupDefaultButton("Lazy Eye", self.camera.lazyEye)
         self.setupDefaultButton("Face Symmetry", self.camera.faceSymmetry)
         self.setupDefaultButton("Face Swap", self.camera.faceSwap)
         self.setupDefaultButton("Red Cheeks", self.camera.cheeksFilter)
@@ -116,9 +117,16 @@ class StartWindow(QMainWindow):
         self.setupDefaultSlider(
             "Eye Freezer",
             self.camera.eyeFreezer,
+            min_range=0,
+            max_range=2,
+            default_value=self.camera.eyeFreezer.slider_value,
+        )
+        self.setupDefaultSlider(
+            "Lazy Eye",
+            self.camera.lazyEye,
             min_range=1,
             max_range=12,
-            default_value=self.camera.eyeFreezer.slider_value,
+            default_value=self.camera.lazyEye.slider_value,
         )
         self.setupDefaultSlider(
             "Face Symmetry",
