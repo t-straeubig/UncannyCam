@@ -126,14 +126,13 @@ class LazyEye(EyeEffect):
         self.slider_value = 5
 
     def before_swap(self):
-        print(self.slider_value, len(self.images))
         if len(self.images) < self.slider_value:
             # Add an additional image to the queue to make it longer
             self.images.append(self.uncannyCam.img.copy())
         self.images.append(self.uncannyCam.img.copy())
 
     def is_deactivated(self):
-        return self.slider_value == 0 or len(self.images) == 0
+        return self.slider_value == 0 and len(self.images) == 0
 
     def get_swap_image(self):
         img = self.images.pop(0)
