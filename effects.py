@@ -39,6 +39,9 @@ class Effect(ABC):
         )
         return new_img
 
+    def reset(self):
+        pass
+
 
 class EyeEffect(Effect):
     def __init__(self, uncannyCam) -> None:
@@ -50,7 +53,6 @@ class EyeEffect(Effect):
             utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
         ]
         self.slider_value = 1
-        self.swap_image = None
 
     def apply(self) -> np.ndarray:
         img = self.uncannyCam.img
@@ -88,11 +90,14 @@ class EyeEffect(Effect):
     def get_swap_image(self):
         return self.uncannyCam.img
 
+    def reset(self):
+        self.eye_triangles = []
+
 
 class EyeFreezer(EyeEffect):
     def __init__(self, uncannyCam) -> None:
         super().__init__(uncannyCam)
-        self.swap_image
+        self.swap_image = None
 
     def before_swap(self):
         if not self.swap_image:
@@ -109,6 +114,9 @@ class EyeFreezer(EyeEffect):
 
     def get_swap_image(self):
         return self.swap_image
+
+    def reset(self):
+        self.swap_image = None
 
 
 class LazyEye(EyeEffect):
@@ -142,7 +150,10 @@ class FaceSwap(Effect):
         self.slider_value = 10
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
-        self.leaveOutPoints = utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE)
+        self.leaveOutPoints = [
+            utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
+            utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
+        ]
 
     def apply(self) -> np.ndarray:
         old_image = self.uncannyCam.img.copy()

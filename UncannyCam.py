@@ -46,6 +46,7 @@ class UncannyCam:
     def toggleFilter(self, filter):
         if filter in self.effects:
             self.effects.remove(filter)
+            filter.reset()
         else:
             self.effects.append(filter)
 

@@ -26,7 +26,7 @@ def insertTriangles(
         newFace = displace(newFace, swapImg.image, triangle, swap_triangle)
     points = img.get_denormalized_landmarks(pointIndices)
     if leaveOutPoints:
-        leaveOutPoints = img.get_denormalized_landmarks(leaveOutPoints)
+        leaveOutPoints = img.get_denormalized_landmarks_nested(leaveOutPoints)
     return insertNewFace(img.image, newFace, points, leaveOutPoints, withSeamlessClone)
 
 
@@ -51,10 +51,11 @@ def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=F
         255,
         cv2.THRESH_BINARY_INV,
     )
-    if leaveOutPoints is not None:
-        head_mask = cv2.fillConvexPoly(
-            mask, cv2.convexHull(np.array(leaveOutPoints, np.int32)), 255
-        )
+    if leaveOutPoints:
+        for points in leaveOutPoints:
+            head_mask = cv2.fillConvexPoly(
+                mask, cv2.convexHull(np.array(points, np.int32)), 255
+            )
     return np.where(
         cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR) == np.array([255, 255, 255]), img, face
     )

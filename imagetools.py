@@ -62,18 +62,14 @@ class Image:
     def get_denormalized_landmarks(self, indices, faceId=0):
         """Turns a list of landmark-indices e.g. [0, 5, 3] into a list of denormalized coordinates [[x0, y0], [x5, y5], [x3, y3]].
         Useful for lines, triangles and other polygons."""
-        return list(
-            map(lambda index: self.get_denormalized_landmark(index, faceId), indices)
-        )
+        return [self.get_denormalized_landmark(index, faceId) for index in indices]
 
     def get_denormalized_landmarks_nested(self, nestedIndices, faceId=0):
         """Turns a list of list landmark-indices recursively into denormalized coordinates. Useful for lists of polygons"""
-        return list(
-            map(
-                lambda indices: self.get_denormalized_landmarks(indices, faceId),
-                nestedIndices,
-            )
-        )
+        return [
+            self.get_denormalized_landmarks(indices, faceId)
+            for indices in nestedIndices
+        ]
 
     def filter_polygon(self, polygon, withCuda=True):
         """Applies a blur filter to the image inside the (indexed) polygon"""
