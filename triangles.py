@@ -19,11 +19,10 @@ def insertTriangles(
 
     # newFace is the transformed part of the face with a black background
     newFace = np.zeros_like(img.image)
-    for triangle, swap_triangle in zip(triangles, swap_triangles):
-        # triangle = np.array(triangle, np.int32)
-        triangle = np.float32(triangle)
+    for dst_triangle, swap_triangle in zip(triangles, swap_triangles):
+        dst_triangle = np.float32(dst_triangle)
         swap_triangle = np.float32(swap_triangle)
-        newFace = displace(newFace, swapImg.image, triangle, swap_triangle)
+        newFace = displace(newFace, swapImg.image, dst_triangle, swap_triangle)
     points = img.get_denormalized_landmarks(pointIndices)
     if leaveOutPoints:
         leaveOutPoints = img.get_denormalized_landmarks_nested(leaveOutPoints)
@@ -41,8 +40,11 @@ def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=F
     face = cv2.add(noFace, newFace)
     if withSeamlessClone:
         (x, y, w, h) = cv2.boundingRect(convexhull)
-        center_face2 = (int((x + x + w) / 2), int((y + y + h) / 2))
-        face = cv2.seamlessClone(face, img, face_mask, center_face2, cv2.MIXED_CLONE)
+        if x >= 0 and x + w < face.shape[1] and y >= 0 and y + h < face.shape[0]:
+            center_face2 = (int(x + w / 2), int(y + h / 2))
+            face = cv2.seamlessClone(
+                face, img, face_mask, center_face2, cv2.MIXED_CLONE
+            )
 
     white_background = cv2.add(cv2.cvtColor(head_mask, cv2.COLOR_GRAY2BGR), newFace)
     _, mask = cv2.threshold(
@@ -62,50 +64,53 @@ def insertNewFace(img, newFace, points, leaveOutPoints=None, withSeamlessClone=F
 
 
 # replace all new triangles with old triangles
-def displace(img, swapImg, triangle, triangleSwap):
-    """Move a triangle of swapImg specified by triangleSwap to a triangle of img specified by triangle"""
-    x, y, w, h = cv2.boundingRect(triangleSwap)
-    croppedTriangle = swapImg[y : y + h, x : x + w]
-    pointsOld = np.array(
+def displace(dest_img, src_img, dest_triangle, src_triangle):
+    """Move a triangle of img_swap specified by triangleSwap to a triangle of img specified by triangle"""
+    x, y, w, h = cv2.boundingRect(src_triangle)
+    cropped_src_img = src_img[y : y + h, x : x + w]
+    cropped_src_triangle = np.array(
         [
-            [triangleSwap[0][0] - x, triangleSwap[0][1] - y],
-            [triangleSwap[1][0] - x, triangleSwap[1][1] - y],
-            [triangleSwap[2][0] - x, triangleSwap[2][1] - y],
+            [src_triangle[0][0] - x, src_triangle[0][1] - y],
+            [src_triangle[1][0] - x, src_triangle[1][1] - y],
+            [src_triangle[2][0] - x, src_triangle[2][1] - y],
         ],
-        np.int32,
+        np.float32,
     )
 
-    rect = cv2.boundingRect(triangle)
-    (x, y, w, h) = rect
-    croppedMask = np.zeros((h, w), np.uint8)
-    points = np.array(
+    x, y, w, h = cv2.boundingRect(dest_triangle)
+    cropped_dest_img = dest_img[y : y + h, x : x + w]
+    cropped_dest_triangle = np.array(
         [
-            [triangle[0][0] - x, triangle[0][1] - y],
-            [triangle[1][0] - x, triangle[1][1] - y],
-            [triangle[2][0] - x, triangle[2][1] - y],
+            [dest_triangle[0][0] - x, dest_triangle[0][1] - y],
+            [dest_triangle[1][0] - x, dest_triangle[1][1] - y],
+            [dest_triangle[2][0] - x, dest_triangle[2][1] - y],
         ],
-        np.int32,
+        np.float32,
     )
-    cv2.fillConvexPoly(croppedMask, points, 255)
 
-    points = np.float32(points)
-    pointsOld = np.float32(pointsOld)
-    transform = cv2.getAffineTransform(pointsOld, points)
-    warpedTriangle = cv2.warpAffine(
-        croppedTriangle, transform, (w, h), flags=cv2.INTER_NEAREST
+    if x < 0 or x + w >= dest_img.shape[1] or y < 0 or y + h >= dest_img.shape[0]:
+        return dest_img
+
+    transform = cv2.getAffineTransform(cropped_src_triangle, cropped_dest_triangle)
+    if cv2.determinant(transform[0:2, 0:2]) < 0:
+        return dest_img
+
+    warped_src = cv2.warpAffine(
+        cropped_src_img, transform, (w, h), flags=cv2.INTER_NEAREST
     )
-    warpedTriangle = cv2.bitwise_and(warpedTriangle, warpedTriangle, mask=croppedMask)
 
-    newFaceArea = img[y : y + h, x : x + w]
-    newFaceGray = cv2.cvtColor(newFaceArea, cv2.COLOR_BGR2GRAY)
-    _, newFaceAreaMask = cv2.threshold(newFaceGray, 1, 255, cv2.THRESH_BINARY_INV)
-    warpedTriangle = cv2.bitwise_and(
-        warpedTriangle, warpedTriangle, mask=newFaceAreaMask
+    mask = np.zeros((h, w, 3), np.uint8)
+    cv2.fillConvexPoly(mask, np.int32(cropped_dest_triangle), (1, 1, 1), 16, 0)
+    warped_src = warped_src * mask
+    newFaceGray = cv2.cvtColor(cropped_dest_img, cv2.COLOR_BGR2GRAY)
+    _, newFaceAreaMask = cv2.threshold(newFaceGray, 1, 1, cv2.THRESH_BINARY_INV)
+    warped_src = warped_src * mask
+    # cropped_dest_img = cv2.add(cropped_dest_img, warped_src)
+
+    dest_img[y : y + h, x : x + w] = (
+        dest_img[y : y + h, x : x + w] * ((1.0, 1.0, 1.0) - mask) + warped_src
     )
-    newFaceArea = cv2.add(newFaceArea, warpedTriangle)
-
-    img[y : y + h, x : x + w] = newFaceArea
-    return img
+    return dest_img
 
 
 # get triangles as points given the indices of the triangulation
