@@ -144,7 +144,7 @@ class StartWindow(QMainWindow):
         self.setupDefaultSlider(
             "Skin Hue",
             self.camera.hueShift,
-            max_range=180,
+            max_range=255,
             default_value=self.camera.hueShift.slider_value,
         )
         self.setupDefaultSlider(

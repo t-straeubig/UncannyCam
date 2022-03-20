@@ -329,8 +329,11 @@ class HueShift(Effect):
 
         # define the effect to be applied
         shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
-        shifted[:, :, 0] = np.uint8(
-            np.mod(np.int32(shifted[:, :, 0]) + self.slider_value, 180)
+        shifted[:, :, 1] = np.uint8(
+            np.maximum(
+                np.int32(shifted[:, :, 1]) - self.slider_value,
+                np.zeros_like(shifted[:, :, 1]),
+            )
         )
         shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
 
