@@ -92,8 +92,15 @@ class StartWindow(QMainWindow):
 
     def setupDefaultButton(self, text, filter):
         button = QPushButton(text, self.central_widget)
-        button.clicked.connect(lambda: self.camera.toggleFilter(filter))
+        button.clicked.connect(lambda: self.pressButton(button, filter))
         self.buttons.append(button)
+
+    def pressButton(self, button, filter):
+        self.camera.toggleFilter(filter)
+        if filter in self.camera.effects:
+            button.setStyleSheet("QPushButton { background-color: green }")
+        else:
+            button.setStyleSheet("QPushButton { background-color: light gray }")
 
     def setupSwapButton(self):
         self.swapButton = QPushButton("Capture Swap Image", self.central_widget)
