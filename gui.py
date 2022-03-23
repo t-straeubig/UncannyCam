@@ -239,9 +239,3 @@ class CameraWindow(StartWindow):
             self.display_width, self.display_height, Qt.KeepAspectRatio
         )
         return QPixmap.fromImage(p)
-
-
-app = QApplication([])
-start_window = CameraWindow()
-start_window.show()
-app.exit(app.exec_())
