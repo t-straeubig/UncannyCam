@@ -43,12 +43,12 @@ class UncannyCam:
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 
-    def toggleFilter(self, filter):
-        if filter in self.effects:
-            self.effects.remove(filter)
-            filter.reset()
+    def toggleEffect(self, effect):
+        if effect in self.effects:
+            self.effects.remove(effect)
+            effect.reset()
         else:
-            self.effects.append(filter)
+            self.effects.append(effect)
 
     def decrease_intensity(self):
         if self.intensity > 0:
