@@ -9,25 +9,27 @@ import numpy as np
 
 
 class Image:
-    def __init__(self, image, landmarks=True, selfieseg=False):
+    def __init__(self, raw, detect_landmarks=True, detect_selfieseg=False):
         self.faceMesh = (
-            mpFaceMesh.FaceMesh(refine_landmarks=True) if landmarks else None
+            mpFaceMesh.FaceMesh(refine_landmarks=True) if detect_landmarks else None
         )
         self.selfieSeg = (
-            mpSelfieSeg.SelfieSegmentation(model_selection=0) if selfieseg else None
+            mpSelfieSeg.SelfieSegmentation(model_selection=0)
+            if detect_selfieseg
+            else None
         )
         self.landmarks = None
-        self.change_image(image, reprocess=True)
+        self.change_image(raw, reprocess=True)
 
-    def change_image(self, img, reprocess=False):
-        self.image = img
+    def change_image(self, raw, reprocess=False):
+        self._raw = raw
         if self.faceMesh and reprocess:
-            self.faceMesh_results = self.faceMesh.process(img)
+            self.faceMesh_results = self.faceMesh.process(raw)
             self.landmarks = self.faceMesh_results.multi_face_landmarks
             if self.landmarks:
                 self.landmarks_denormalized = self._get_denormalized_landmarks()
         if self.selfieSeg and reprocess:
-            self.selfieSeg_results = self.selfieSeg.process(img)
+            self.selfieSeg_results = self.selfieSeg.process(raw)
 
     def _get_denormalized_landmarks(self):
         newFaceLms = []
@@ -39,13 +41,13 @@ class Image:
         return newFaceLms
 
     def _denormalize(self, landmark):
-        height, width, _ = self.image.shape
+        height, width, _ = self._raw.shape
         x = int(width * landmark.x)
         y = int(height * landmark.y)
         return x, y
 
     def copy(self):
-        copy = Image(self.image, False, False)
+        copy = Image(self._raw, False, False)
         copy.faceMesh_results = self.faceMesh_results
         copy.landmarks = self.landmarks
         if self.landmarks:
@@ -53,8 +55,8 @@ class Image:
         copy.selfieSeg_results = self.selfieSeg_results
         return copy
 
-    def flipped(self):
-        return cv2.flip(self.image, 1)
+    def flipped(self) -> np.ndarray:
+        return cv2.flip(self._raw, 1)
 
     def get_denormalized_landmark(self, index, faceId=0):
         return self.landmarks_denormalized[faceId][index]
@@ -75,37 +77,37 @@ class Image:
         """Applies a blur filter to the image inside the (indexed) polygon"""
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
         if withCuda:
-            blurred = utils.cudaBilateralFilter(self.image)
+            blurred = utils.cudaBilateralFilter(self._raw)
         else:
-            blurred = cv2.bilateralFilter(self.image, 20, 50, 50)
-        mask = utils.getMask(self.image.shape, polygon_denormalized)
-        self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
+            blurred = cv2.bilateralFilter(self._raw, 20, 50, 50)
+        mask = utils.getMask(self._raw.shape, polygon_denormalized)
+        self._raw = np.where(mask == np.array([255, 255, 255]), blurred, self._raw)
 
     def filterTriangle(self, triangleIndices):
         denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
-        blurred = utils.cudaBilateralFilter(self.image)
-        mask = utils.getMask(self.image.shape, denormalizedTriangle)
-        self.image = np.where(mask == np.array([255, 255, 255]), blurred, self.image)
+        blurred = utils.cudaBilateralFilter(self._raw)
+        mask = utils.getMask(self._raw.shape, denormalizedTriangle)
+        self._raw = np.where(mask == np.array([255, 255, 255]), blurred, self._raw)
 
     def segmentationFilter(self, withCuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
-        background = np.zeros(self.image.shape, dtype=np.uint8)
+        background = np.zeros(self._raw.shape, dtype=np.uint8)
         background[:] = (0, 0, 0)
         condition = (
             np.stack((self.selfieSeg_results.segmentation_mask,) * 3, axis=-1) > 0.1
         )
         if withCuda:
-            blurred = utils.cudaBilateralFilter(self.image)
+            blurred = utils.cudaBilateralFilter(self._raw)
         else:
-            blurred = cv2.bilateralFilter(self.image, 5, 50, 50)
-        self.image = np.where(condition, blurred, self.image)
+            blurred = cv2.bilateralFilter(self._raw, 5, 50, 50)
+        self._raw = np.where(condition, blurred, self._raw)
 
     def drawLandmarks(self):
         """Draws points at the landmarks"""
         if self.landmarks:
             for faceLms in self.landmarks_denormalized:
                 for landmark in faceLms:
-                    cv2.circle(self.image, landmark, 0, (255, 0, 0), 2)
+                    cv2.circle(self._raw, landmark, 0, (255, 0, 0), 2)
 
     def drawLines(self, lines):
         """Draws the (denormalized) lines"""
@@ -117,10 +119,10 @@ class Image:
         """Draws the (denormalized) polygons into the image"""
         for polygon in polygons:
             for i in range(1, len(polygon)):
-                cv2.line(self.image, polygon[i - 1], polygon[i], (0, 0, 255), 1)
+                cv2.line(self._raw, polygon[i - 1], polygon[i], (0, 0, 255), 1)
 
     def drawPoints(self, lines):
         """Draws the denormalized points"""
         for i, j in lines:
-            cv2.circle(self.image, i, 0, (255, 0, 0), 2)
-            cv2.circle(self.image, j, 0, (255, 0, 0), 2)
+            cv2.circle(self._raw, i, 0, (255, 0, 0), 2)
+            cv2.circle(self._raw, j, 0, (255, 0, 0), 2)
