@@ -63,9 +63,9 @@ class StartWindow(QMainWindow):
         self.setupSliders()
         self.createLayout()
 
-        self.video_thread()
+        self.create_video_thread()
 
-    def video_thread(self):
+    def create_video_thread(self):
         self.thread = VideoThread(self.camera)
         self.thread.start()
 
@@ -96,7 +96,7 @@ class StartWindow(QMainWindow):
         self.buttons.append(button)
 
     def pressButton(self, button, filter):
-        self.camera.toggleFilter(filter)
+        self.camera.toggleEffect(filter)
         if filter in self.camera.effects:
             button.setStyleSheet("QPushButton { background-color: green }")
         else:
@@ -216,7 +216,7 @@ class CameraWindow(StartWindow):
         super().createLayout()
         self.splitter.addWidget(self.image_label)
 
-    def video_thread(self):
+    def create_video_thread(self):
         self.thread = VideoDisplayThread(self.camera)
         self.thread.change_pixmap_signal.connect(self.update_image)
         self.thread.start()
