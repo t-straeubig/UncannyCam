@@ -125,6 +125,9 @@ class EyeFreezer(EyeEffect):
     def get_swap_image(self) -> Image:
         return self.swap_image
 
+    def is_deactivated(self) -> bool:
+        return self.slider_value == 0
+
 
 class LazyEye(EyeEffect):
     def __init__(self) -> None:
@@ -141,7 +144,7 @@ class LazyEye(EyeEffect):
         self.images.append(image.copy())
 
     def is_deactivated(self) -> bool:
-        return self.slider_value == 0 and len(self.images) == 0
+        return self.slider_value == 0 or len(self.images) == 0
 
     def get_swap_image(self) -> Image:
         image = self.images.pop(0)
