@@ -19,6 +19,9 @@ from imagetools import Image
 
 
 class UncannyCam:
+
+    REDUCTION_KEY = "l"
+
     def __init__(self) -> None:
         self.img = None
         self.testMode = True
@@ -40,6 +43,9 @@ class UncannyCam:
         self.basicNoiseFilter = NoiseFilter()
         self.perlinNoiseFilter = NoiseFilter(1)
 
+        # The effects that get reduced when pressing the REDUCTION_KEY
+        self.reducable_effects = [self.lazyEye]
+
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 
@@ -50,13 +56,25 @@ class UncannyCam:
         else:
             self.effects.append(effect)
 
-    def decrease_intensity(self):
+    def decrease_temporary_intensity(self):
         if self.intensity > 0:
             self.intensity -= 1
 
-    def increase_intensity(self):
+    def increase_temporary_intensity(self):
         if self.intensity < 10:
             self.intensity += 1
+
+    def get_temporary_intensity(self):
+        return self.intensity / 10
+
+    def apply_effect(self, effect):
+        effect.apply(self.img)
+
+    def apply_effect_reduced(self, effect):
+        prev_intensity = effect.intensity
+        effect.set_intensity(int(effect.intensity * self.get_temporary_intensity()))
+        effect.apply(self.img)
+        effect.set_intensity(prev_intensity)
 
     def get_frame(self):
         success, self.img_raw = self.cap.read()
@@ -69,18 +87,16 @@ class UncannyCam:
         else:
             self.img.change_image(self.img_raw, reprocess=True)
 
-        if keyboard.is_pressed("l"):
-            self.decrease_intensity()
+        if keyboard.is_pressed(UncannyCam.REDUCTION_KEY):
+            self.decrease_temporary_intensity()
         else:
-            self.increase_intensity()
+            self.increase_temporary_intensity()
 
         for effect in self.effects:
-            if effect == self.lazyEye:
-                prev_slider_value = effect.slider_value
-                effect.set_slider_value(int(effect.slider_value * self.intensity / 10))
-            effect.apply(self.img)
-            if effect == self.lazyEye:
-                effect.set_slider_value(prev_slider_value)
+            if effect in self.reducable_effects:
+                self.apply_effect_reduced(effect)
+            else:
+                self.apply_effect(effect)
 
         return self.img._raw
 

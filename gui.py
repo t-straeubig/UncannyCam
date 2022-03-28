@@ -23,7 +23,7 @@ import cv2
 
 
 class VideoThread(QThread):
-    def __init__(self, camera):
+    def __init__(self, camera: UncannyCam):
         super().__init__()
         self.camera = camera
         self._run_flag = True
@@ -113,64 +113,64 @@ class StartWindow(QMainWindow):
             self.camera.bilateralFilter,
             min_range=1,
             max_range=60,
-            default_value=self.camera.bilateralFilter.slider_value,
+            default_value=self.camera.bilateralFilter.intensity,
         )
         self.setupDefaultSlider(
             "Morphology Filter",
             self.camera.morphologyFilter,
             min_range=1,
             max_range=5,
-            default_value=self.camera.morphologyFilter.slider_value,
+            default_value=self.camera.morphologyFilter.intensity,
         )
         self.setupDefaultSlider(
             "Eye Freezer",
             self.camera.eyeFreezer,
             min_range=0,
             max_range=2,
-            default_value=self.camera.eyeFreezer.slider_value,
+            default_value=self.camera.eyeFreezer.intensity,
         )
         self.setupDefaultSlider(
             "Lazy Eye",
             self.camera.lazyEye,
             max_range=12,
-            default_value=self.camera.lazyEye.slider_value,
+            default_value=self.camera.lazyEye.intensity,
         )
         self.setupDefaultSlider(
             "Face Symmetry",
             self.camera.faceSymmetry,
             min_range=0,
             max_range=10,
-            default_value=self.camera.faceSymmetry.slider_value,
+            default_value=self.camera.faceSymmetry.intensity,
         )
         self.setupDefaultSlider(
             "Face Swap",
             self.camera.faceSwap,
             max_range=10,
-            default_value=self.camera.faceSwap.slider_value,
+            default_value=self.camera.faceSwap.intensity,
         )
         self.setupDefaultSlider(
             "Skin Hue",
             self.camera.hueShift,
             max_range=180,
-            default_value=self.camera.hueShift.slider_value,
+            default_value=self.camera.hueShift.intensity,
         )
         self.setupDefaultSlider(
             "Cheeks Hue",
             self.camera.cheeksFilter,
             max_range=180,
-            default_value=self.camera.cheeksFilter.slider_value,
+            default_value=self.camera.cheeksFilter.intensity,
         )
         self.setupDefaultSlider(
             "Basic Noise",
             self.camera.basicNoiseFilter,
             max_range=20,
-            default_value=self.camera.basicNoiseFilter.slider_value,
+            default_value=self.camera.basicNoiseFilter.intensity,
         )
         self.setupDefaultSlider(
             "Perlin Noise",
             self.camera.perlinNoiseFilter,
             max_range=20,
-            default_value=self.camera.perlinNoiseFilter.slider_value,
+            default_value=self.camera.perlinNoiseFilter.intensity,
         )
 
     def setupDefaultSlider(
@@ -181,7 +181,7 @@ class StartWindow(QMainWindow):
         slider = QSlider(Qt.Horizontal)
         slider.setRange(min_range, max_range)
         slider.setValue(default_value)
-        slider.valueChanged.connect(filter.set_slider_value)
+        slider.valueChanged.connect(filter.set_intensity)
         self.sliders.append((slider_label, slider))
 
     def createLayout(self):
