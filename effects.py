@@ -371,11 +371,11 @@ class CheeksFilter(Effect):
         return 180 - self.intensity
 
     def hueShift(self, image_bgr: np.ndarray) -> np.ndarray:
-        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(hsv)
-        h_new = np.mod(h + self.hue_difference(), 180).astype(np.uint8)
-        hsv_new = cv2.merge([h_new, s, v])
-        return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
+        shifted = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        shifted[:, :, 0] = np.uint8(
+            np.mod(np.int32(shifted[:, :, 0]) + self.hue_difference(), 180)
+        )
+        return cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
 
     def denormalized_polygons(self, image: Image):
         return image.get_denormalized_landmarks_nested(self.polygon_indices)
