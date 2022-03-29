@@ -35,7 +35,7 @@ class VideoThread(QThread):
 
     def show_video(self):
         self.camera.get_frame()
-        self.camera.cam.send(cv2.cvtColor(self.camera.img.image, cv2.COLOR_BGR2RGB))
+        self.camera.cam.send(cv2.cvtColor(self.camera.img._raw, cv2.COLOR_BGR2RGB))
         self.camera.cam.sleep_until_next_frame()
 
     def stop(self):
