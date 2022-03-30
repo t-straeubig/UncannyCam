@@ -17,11 +17,22 @@ from effects import (
 from imagetools import Image
 
 
+def cuda_support() -> bool:
+    try:
+        count = cv2.cuda.getCudaEnabledDeviceCount()
+        if count > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+
 class UncannyCam:
 
     REDUCTION_KEY = "l"
 
-    def __init__(self) -> None:
+    def __init__(self, with_virtual_cam=False) -> None:
         self.img = None
         self.img_raw = None
         self.test_mode = True
@@ -31,6 +42,9 @@ class UncannyCam:
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+        if not cuda_support():
+            print("OpenCV doesn't have Cuda-Support. All effects run on CPU.")
+
         self.effects: List[Effect] = []
         self.bilateral_filter = FaceFilter()
         self.morphology_filter = FaceFilter(bilateral_filter=False)
@@ -38,7 +52,7 @@ class UncannyCam:
         self.lazy_eye = LazyEye()
         self.face_swap = FaceSwap()
         self.hue_shift = HueShift()
-        self.cheeks_filter = CheeksFilter()
+        self.cheeks_filter = CheeksFilter(with_cuda=cuda_support())
         self.face_symmetry = FaceSymmetry()
         self.basic_noise_filter = NoiseFilter()
         self.perlin_noise_filter = NoiseFilter(1)
@@ -46,8 +60,9 @@ class UncannyCam:
         # The effects that get reduced when pressing the REDUCTION_KEY
         self.reducable_effects = [self.lazy_eye]
 
-        self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
-        print(f"Using virtual camera: {self.cam.device}")
+        if with_virtual_cam:
+            self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
+            print(f"Using virtual camera: {self.cam.device}")
 
     def toggle_effect(self, effect):
         if effect in self.effects:
@@ -122,5 +137,5 @@ class UncannyCam:
 
 
 if __name__ == "__main__":
-    uncannyCam = UncannyCam()
+    uncannyCam = UncannyCam(with_virtual_cam=True)
     uncannyCam.mainloop()

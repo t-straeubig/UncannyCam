@@ -47,7 +47,7 @@ class VideoDisplayThread(VideoThread):
 class StartWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.camera = UncannyCam()
+        self.create_camera()
         self.camera.test_mode = False
         self.central_widget = QWidget()
 
@@ -57,6 +57,9 @@ class StartWindow(QMainWindow):
         self.create_layout()
 
         self.create_video_thread()
+
+    def create_camera(self):
+        self.camera = UncannyCam(with_virtual_cam=True)
 
     def create_video_thread(self):
         self.thread = VideoThread(self.camera)
@@ -199,6 +202,10 @@ class StartWindow(QMainWindow):
 
 
 class CameraWindow(StartWindow):
+
+    def create_camera(self):
+        self.camera = UncannyCam(with_virtual_cam=False)
+
     def add_video(self):
         self.image_label = QLabel(self)
         self.display_width = 640

@@ -225,7 +225,7 @@ class FaceSymmetry(Effect):
 
 
 class FaceFilter(Effect):
-    def __init__(self, mode=3, bilateral_filter=True) -> None:
+    def __init__(self, mode=3, with_cuda=False, bilateral_filter=True) -> None:
         super().__init__()
         self.mode = mode
         if bilateral_filter:
@@ -233,18 +233,19 @@ class FaceFilter(Effect):
         else:
             self.intensity = 3
         self.bilateral_filter = bilateral_filter
+        self.with_cuda = with_cuda
 
     def filter_face(self, image: Image) -> None:
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
-        image.filter_polygon(polygon)
+        image.filter_polygon(polygon, self.with_cuda)
 
     def filter_person(self, image: Image) -> None:
-        image.filter_segmentation()
+        image.segmentation_filter(self.with_cuda)
 
     def filter_triangle(self, image: Image) -> None:
         indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
         triangle = [indices[50], indices[260], indices[150]]
-        image.filter_polygon(triangle)
+        image.filter_polygon(triangle, self.with_cuda)
 
     def filter_image(self, image: Image) -> None:
         if self.bilateral_filter:
