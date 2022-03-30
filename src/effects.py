@@ -263,7 +263,7 @@ class FaceFilter(Effect):
             "triangle": self.triangle_mask,
             "image": self.image_mask,
         }[self.region](image)
-        print(mask.shape)
+
         image.change_image(np.where(mask, blurred, image.raw))
 
 
