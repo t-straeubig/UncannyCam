@@ -26,4 +26,4 @@ To use the virtual camera you also need to install OBS. You can download it [her
 
 ### Usage
 
-Start the program with `python main.py`. This will open the GUI with an integrated camera window. To use the virtual camera start the program with `python main.py --virtual_cam`.
+Start the program with `python src\main.py`. This will open the GUI with an integrated camera window. To use the virtual camera start the program with `python main.py --virtual_cam`.
