@@ -3,7 +3,6 @@ import cv2
 import pyvirtualcam
 import keyboard
 from effects import (
-    DebuggingFilter,
     Effect,
     EyeFreezer,
     FaceFilter,

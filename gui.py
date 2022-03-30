@@ -1,22 +1,15 @@
 from PyQt5.QtWidgets import (
-    QApplication,
     QMainWindow,
     QPushButton,
     QVBoxLayout,
     QWidget,
     QSlider,
+    QLabel,
+    QSplitter,
 )
 from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread
-from PyQt5.QtWidgets import (
-    QWidget,
-    QApplication,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QSplitter,
-)
 from UncannyCam import UncannyCam
 import numpy as np
 import cv2

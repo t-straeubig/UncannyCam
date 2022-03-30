@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import mediapipe as mp
 
 
 def find_polygon(lines):

@@ -4,11 +4,7 @@ import triangles
 import utils
 import cv2
 import keyboard
-from mediapipe.python.solutions import (
-    drawing_utils as mpDraw,
-    face_mesh as mpFaceMesh,
-    selfie_segmentation as mpSelfieSeg,
-)
+from mediapipe.python.solutions import face_mesh as mpFaceMesh
 import triangulation_media_pipe as tmp
 from imagetools import Image
 from noise import generate_perlin_noise_2d
@@ -304,9 +300,7 @@ class NoiseFilter(Effect):
         self.alpha_blend(image, old_image)
 
     def apply(self, image: Image) -> None:
-        return {0: self.basic_noise, 1: self.perlin_noise,}[
-            self.mode
-        ](image)
+        return {0: self.basic_noise, 1: self.perlin_noise}[self.mode](image)
 
     def alpha_blend_value(self) -> float:
         return self.slider_value / 100
