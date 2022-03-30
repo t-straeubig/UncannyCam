@@ -23,7 +23,8 @@ class UncannyCam:
 
     def __init__(self) -> None:
         self.img = None
-        self.testMode = True
+        self.img_raw = None
+        self.test_mode = True
         self.cap = cv2.VideoCapture(0)
         self.intensity = 10
 
@@ -31,24 +32,24 @@ class UncannyCam:
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         self.effects: List[Effect] = []
-        self.bilateralFilter = FaceFilter()
-        self.morphologyFilter = FaceFilter(bilateralFilter=False)
-        self.eyeFreezer = EyeFreezer()
-        self.lazyEye = LazyEye()
-        self.faceSwap = FaceSwap()
-        self.hueShift = HueShift()
-        self.cheeksFilter = CheeksFilter()
-        self.faceSymmetry = FaceSymmetry()
-        self.basicNoiseFilter = NoiseFilter()
-        self.perlinNoiseFilter = NoiseFilter(1)
+        self.bilateral_filter = FaceFilter()
+        self.morphology_filter = FaceFilter(bilateral_filter=False)
+        self.eye_freezer = EyeFreezer()
+        self.lazy_eye = LazyEye()
+        self.face_swap = FaceSwap()
+        self.hue_shift = HueShift()
+        self.cheeks_filter = CheeksFilter()
+        self.face_symmetry = FaceSymmetry()
+        self.basic_noise_filter = NoiseFilter()
+        self.perlin_noise_filter = NoiseFilter(1)
 
         # The effects that get reduced when pressing the REDUCTION_KEY
-        self.reducable_effects = [self.lazyEye]
+        self.reducable_effects = [self.lazy_eye]
 
         self.cam = pyvirtualcam.Camera(width=width, height=height, fps=60)
         print(f"Using virtual camera: {self.cam.device}")
 
-    def toggleEffect(self, effect):
+    def toggle_effect(self, effect):
         if effect in self.effects:
             self.effects.remove(effect)
             effect.reset()
@@ -97,7 +98,7 @@ class UncannyCam:
             else:
                 self.apply_effect(effect)
 
-        return self.img._raw
+        return self.img.raw
 
     def close_camera(self):
         self.cap.release()
@@ -106,15 +107,15 @@ class UncannyCam:
         while self.cap.isOpened():
             self.get_frame()
 
-            if self.testMode:
+            if self.test_mode:
                 # self.img = cv2.cvtColor(self.img, cv2.COLOR_RGB2BGR)
-                cv2.imshow("Image", self.img._raw)
+                cv2.imshow("Image", self.img.raw)
                 key = cv2.waitKey(20)
                 if key == 27:  # exit on ESC
                     break
 
             else:
-                self.cam.send(cv2.cvtColor(self.img._raw, cv2.COLOR_BGR2RGB))
+                self.cam.send(cv2.cvtColor(self.img.raw, cv2.COLOR_BGR2RGB))
                 self.cam.sleep_until_next_frame()
 
         print("main loop terminated")

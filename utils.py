@@ -19,7 +19,7 @@ def find_polygon(lines):
     return polygon
 
 
-def getMask(shape, polygon) -> np.ndarray:
+def get_mask(shape, polygon) -> np.ndarray:
     """Returns an np-array with specified shape where points inside the polygon are white"""
     poly = np.array(polygon)
     mask = np.zeros(shape)
@@ -27,58 +27,58 @@ def getMask(shape, polygon) -> np.ndarray:
     return mask
 
 
-def getBlurredMask(shape, polygons, withCuda) -> np.ndarray:
+def get_blurred_mask(shape, polygons, with_cuda) -> np.ndarray:
     """Return blurred mask for alpha-blending with values between 0 and 1"""
     mask = np.zeros(shape)
     for polygon in polygons:
         poly = np.array(polygon)
         cv2.fillPoly(mask, np.int32([poly]), color=(255, 255, 255))
 
-    if withCuda:
-        mask = cudaGaussianFilter(np.uint8(mask))
+    if with_cuda:
+        mask = cuda_gaussian_filter(np.uint8(mask))
     else:
         mask = cv2.GaussianBlur(mask, (65, 65), 0)
 
     return mask / 255
 
 
-def imageBGR_RGBA(image):
+def image_BGR_RGBA(image):
     b_channel, g_channel, r_channel = cv2.split(image)
     alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype)
     return cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
 
 
-def cudaGaussianFilter(image):
+def cuda_gaussian_filter(image):
     # Use GPU Mat to speed up filtering
-    cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
-    cudaImg.upload(imageBGR_RGBA(image))
-    filter = cv2.cuda.createGaussianFilter(cv2.CV_8UC4, -1, (31, 31), 16)
-    filter.apply(cudaImg, cudaImg)
+    cuda_img = cv2.cuda_GpuMat(cv2.CV_8UC4)
+    cuda_img.upload(image_BGR_RGBA(image))
+    gaussian_filter = cv2.cuda.createGaussianFilter(cv2.CV_8UC4, -1, (31, 31), 16)
+    gaussian_filter.apply(cuda_img, cuda_img)
 
-    result = cudaImg.download()
+    result = cuda_img.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
 
-def cudaBilateralFilter(image, kernel_size):
+def cuda_bilateral_filter(image, kernel_size):
     # Use GPU Mat to speed up filtering
-    cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
-    cudaImg.upload(imageBGR_RGBA(image))
-    cudaImg = cv2.cuda.bilateralFilter(cudaImg, 10, kernel_size, kernel_size)
-    result = cudaImg.download()
+    cuda_img = cv2.cuda_GpuMat(cv2.CV_8UC4)
+    cuda_img.upload(image_BGR_RGBA(image))
+    cuda_img = cv2.cuda.bilateralFilter(cuda_img, 10, kernel_size, kernel_size)
+    result = cuda_img.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
 
-def cudaMorphologyFilter(image, size):
+def cuda_morphology_filter(image, size):
     # Use GPU Mat to speed up filtering
-    cudaImg = cv2.cuda_GpuMat(cv2.CV_8UC4)
-    cudaImg.upload(imageBGR_RGBA(image))
+    cuda_img = cv2.cuda_GpuMat(cv2.CV_8UC4)
+    cuda_img.upload(image_BGR_RGBA(image))
     filter = cv2.cuda.createMorphologyFilter(cv2.MORPH_ERODE, cv2.CV_8UC4, np.eye(size))
-    filter.apply(cudaImg, cudaImg)
-    result = cudaImg.download()
+    filter.apply(cuda_img, cuda_img)
+    result = cuda_img.download()
     return cv2.cvtColor(result, cv2.COLOR_BGRA2BGR)
 
 
-def noiseFilter(image):
+def noise_filter(image):
     row, col, _ = image.shape
     noise = np.random.normal(0.5, 0.5, (row, col, 1))
     noise = np.uint8(noise * 255)
