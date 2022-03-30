@@ -80,28 +80,22 @@ class Image:
             for indices in nested_indices
         ]
 
-    def filter_polygon(self, polygon, with_cuda=True):
-        """Applies a blur filter to the image inside the (indexed) polygon"""
-        polygon_denormalized = self.get_denormalized_landmarks(polygon)
-        if with_cuda:
-            blurred = utils.cuda_bilateral_filter(self.raw)
-        else:
-            blurred = cv2.bilateralFilter(self.raw, 20, 50, 50)
-        mask = utils.get_mask(self.raw.shape, polygon_denormalized)
-        self.raw = np.where(mask == np.array([255, 255, 255]), blurred, self.raw)
+    def blurred(self, method: str, intensity, with_cuda=True) -> np.ndarray:
+        assert method in ["bilateral", "morphology"]
+        if method == "bilateral":
+            if with_cuda:
+                return utils.cuda_bilateral_filter(self.raw, intensity)
+            else:
+                return cv2.bilateralFilter(self.raw, intensity, 50, 50)
+        if method == "morphology":
+            if with_cuda:
+                return utils.cuda_morphology_filter(self.raw, intensity)
+            else:
+                return self.raw
 
-    def segmentation_filter(self, with_cuda=True):
-        """Applies a bilateral filter to the region returned by the segmentation filter"""
-        background = np.zeros(self.raw.shape, dtype=np.uint8)
-        background[:] = (0, 0, 0)
-        condition = (
-            np.stack((self.selfie_seg_results.segmentation_mask,) * 3, axis=-1) > 0.1
-        )
-        if with_cuda:
-            blurred = utils.cuda_bilateral_filter(self.raw)
-        else:
-            blurred = cv2.bilateralFilter(self.raw, 5, 50, 50)
-        self.raw = np.where(condition, blurred, self.raw)
+    def get_mask(self, polygon):
+        polygon_denormalized = self.get_denormalized_landmarks(polygon)
+        return utils.get_mask(self.raw.shape, polygon_denormalized)
 
     def draw_landmarks(self):
         """Draws points at the landmarks"""

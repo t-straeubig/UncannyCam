@@ -51,6 +51,7 @@ class StartWindow(QMainWindow):
         self.camera.test_mode = False
         self.central_widget = QWidget()
 
+        self.setWindowTitle("UncannyCam")
         self.add_video()
         self.setup_buttons()
         self.setup_sliders()

@@ -46,8 +46,8 @@ class UncannyCam:
             print("OpenCV doesn't have Cuda-Support. All effects run on CPU.")
 
         self.effects: List[Effect] = []
-        self.bilateral_filter = FaceFilter()
-        self.morphology_filter = FaceFilter(bilateral_filter=False)
+        self.bilateral_filter = FaceFilter("bilateral", with_cuda=cuda_support())
+        self.morphology_filter = FaceFilter("morphology", with_cuda=cuda_support())
         self.eye_freezer = EyeFreezer()
         self.lazy_eye = LazyEye()
         self.face_swap = FaceSwap()
