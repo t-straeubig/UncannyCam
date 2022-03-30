@@ -1,19 +1,18 @@
-import utils
+import cv2
+import numpy as np
 from mediapipe.python.solutions import (
     face_mesh as mpFaceMesh,
     selfie_segmentation as mpSelfieSeg,
 )
-import cv2
-import time
-import numpy as np
+import utils
 
 
 class Image:
     def __init__(self, raw, detect_landmarks=True, detect_selfieseg=False):
-        self.faceMesh = (
+        self.face_mesh = (
             mpFaceMesh.FaceMesh(refine_landmarks=True) if detect_landmarks else None
         )
-        self.selfieSeg = (
+        self.selfie_seg = (
             mpSelfieSeg.SelfieSegmentation(model_selection=0)
             if detect_selfieseg
             else None
@@ -22,107 +21,105 @@ class Image:
         self.change_image(raw, reprocess=True)
 
     def change_image(self, raw, reprocess=False):
-        self._raw = raw
-        if self.faceMesh and reprocess:
-            self.faceMesh_results = self.faceMesh.process(raw)
-            self.landmarks = self.faceMesh_results.multi_face_landmarks
+        self.raw = raw
+        if self.face_mesh and reprocess:
+            self.face_mesh_results = self.face_mesh.process(raw)
+            self.landmarks = self.face_mesh_results.multi_face_landmarks
             if self.landmarks:
                 self.landmarks_denormalized = self._get_denormalized_landmarks()
-        if self.selfieSeg and reprocess:
-            self.selfieSeg_results = self.selfieSeg.process(raw)
+        if self.selfie_seg and reprocess:
+            self.selfie_seg_results = self.selfie_seg.process(raw)
 
     def _get_denormalized_landmarks(self):
-        newFaceLms = []
-        for faceLms in self.landmarks:
-            newLandmark = []
-            for landmark in faceLms.landmark:
-                newLandmark.append(self._denormalize(landmark))
-            newFaceLms.append(newLandmark)
-        return newFaceLms
+        new_face_landmarks = []
+        for face_landmarks in self.landmarks:
+            new_landmark = []
+            for landmark in face_landmarks.landmark:
+                new_landmark.append(self._denormalize(landmark))
+            new_face_landmarks.append(new_landmark)
+        return new_face_landmarks
 
     def _denormalize(self, landmark):
-        height, width, _ = self._raw.shape
+        height, width, _ = self.raw.shape
         x = int(width * landmark.x)
         y = int(height * landmark.y)
         return x, y
 
     def copy(self):
-        copy = Image(self._raw, False, False)
-        copy.faceMesh_results = self.faceMesh_results
+        copy = Image(self.raw, False, False)
+        copy.face_mesh_results = self.face_mesh_results
         copy.landmarks = self.landmarks
         if self.landmarks:
             copy.landmarks_denormalized = self.landmarks_denormalized
-        copy.selfieSeg_results = self.selfieSeg_results
+        copy.selfie_seg_results = self.selfie_seg_results
         return copy
 
     def flipped(self) -> np.ndarray:
-        return cv2.flip(self._raw, 1)
+        return cv2.flip(self.raw, 1)
 
-    def get_denormalized_landmark(self, index, faceId=0):
-        return self.landmarks_denormalized[faceId][index]
+    def get_denormalized_landmark(self, index, face_id=0):
+        return self.landmarks_denormalized[face_id][index]
 
-    def get_denormalized_landmarks(self, indices, faceId=0):
+    def get_denormalized_landmarks(self, indices, face_id=0):
         """Turns a list of landmark-indices e.g. [0, 5, 3] into a list of denormalized coordinates [[x0, y0], [x5, y5], [x3, y3]].
         Useful for lines, triangles and other polygons."""
-        return [self.get_denormalized_landmark(index, faceId) for index in indices]
+        return [self.get_denormalized_landmark(index, face_id) for index in indices]
 
-    def get_denormalized_landmarks_nested(self, nestedIndices, faceId=0):
+    def get_denormalized_landmarks_nested(self, nested_indices, faceId=0):
         """Turns a list of list landmark-indices recursively into denormalized coordinates. Useful for lists of polygons"""
         return [
             self.get_denormalized_landmarks(indices, faceId)
-            for indices in nestedIndices
+            for indices in nested_indices
         ]
 
-    def filter_polygon(self, polygon, withCuda=True):
+    def filter_polygon(self, polygon, with_cuda=True):
         """Applies a blur filter to the image inside the (indexed) polygon"""
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
-        if withCuda:
-            blurred = utils.cudaBilateralFilter(self._raw)
+        if with_cuda:
+            blurred = utils.cuda_bilateral_filter(self.raw)
         else:
-            blurred = cv2.bilateralFilter(self._raw, 20, 50, 50)
-        mask = utils.getMask(self._raw.shape, polygon_denormalized)
-        self._raw = np.where(mask == np.array([255, 255, 255]), blurred, self._raw)
+            blurred = cv2.bilateralFilter(self.raw, 20, 50, 50)
+        mask = utils.get_mask(self.raw.shape, polygon_denormalized)
+        self.raw = np.where(mask == np.array([255, 255, 255]), blurred, self.raw)
 
-    def filterTriangle(self, triangleIndices):
-        denormalizedTriangle = self.get_denormalized_landmarks(triangleIndices)
-        blurred = utils.cudaBilateralFilter(self._raw)
-        mask = utils.getMask(self._raw.shape, denormalizedTriangle)
-        self._raw = np.where(mask == np.array([255, 255, 255]), blurred, self._raw)
+    def filter_triangle(self, triangle_indices):
+        denormalized_triangle = self.get_denormalized_landmarks(triangle_indices)
+        blurred = utils.cuda_bilateral_filter(self.raw)
+        mask = utils.get_mask(self.raw.shape, denormalized_triangle)
+        self.raw = np.where(mask == np.array([255, 255, 255]), blurred, self.raw)
 
-    def segmentationFilter(self, withCuda=True):
+    def segmentation_filter(self, with_cuda=True):
         """Applies a bilateral filter to the region returned by the segmentation filter"""
-        background = np.zeros(self._raw.shape, dtype=np.uint8)
+        background = np.zeros(self.raw.shape, dtype=np.uint8)
         background[:] = (0, 0, 0)
         condition = (
-            np.stack((self.selfieSeg_results.segmentation_mask,) * 3, axis=-1) > 0.1
+            np.stack((self.selfie_seg_results.segmentation_mask,) * 3, axis=-1) > 0.1
         )
-        if withCuda:
-            blurred = utils.cudaBilateralFilter(self._raw)
+        if with_cuda:
+            blurred = utils.cuda_bilateral_filter(self.raw)
         else:
-            blurred = cv2.bilateralFilter(self._raw, 5, 50, 50)
-        self._raw = np.where(condition, blurred, self._raw)
+            blurred = cv2.bilateralFilter(self.raw, 5, 50, 50)
+        self.raw = np.where(condition, blurred, self.raw)
 
-    def drawLandmarks(self):
+    def draw_landmarks(self):
         """Draws points at the landmarks"""
         if self.landmarks:
-            for faceLms in self.landmarks_denormalized:
-                for landmark in faceLms:
-                    cv2.circle(self._raw, landmark, 0, (255, 0, 0), 2)
+            for face_landmarks in self.landmarks_denormalized:
+                for landmark in face_landmarks:
+                    cv2.circle(self.raw, landmark, 0, (255, 0, 0), 2)
 
-    def drawLines(self, lines):
+    def draw_lines(self, lines):
         """Draws the (denormalized) lines"""
-        # for i, j in lines:
-        #     cv2.line(self.image, i, j, (0,255,00), 1)
-        self.drawPolygons(lines)
+        self.draw_polygons(lines)
 
-    def drawPolygons(self, polygons):
+    def draw_polygons(self, polygons):
         """Draws the (denormalized) polygons into the image"""
         for polygon in polygons:
             for i in range(1, len(polygon)):
-                cv2.line(self._raw, polygon[i - 1], polygon[i], (0, 0, 255), 1)
+                cv2.line(self.raw, polygon[i - 1], polygon[i], (0, 0, 255), 1)
 
-    def drawPoints(self, lines):
+    def draw_points(self, lines):
         """Draws the denormalized points"""
         for i, j in lines:
-            cv2.circle(self._raw, i, 0, (255, 0, 0), 2)
-            cv2.circle(self._raw, j, 0, (255, 0, 0), 2)
+            cv2.circle(self.raw, i, 0, (255, 0, 0), 2)
+            cv2.circle(self.raw, j, 0, (255, 0, 0), 2)

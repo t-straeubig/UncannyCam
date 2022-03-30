@@ -1,14 +1,10 @@
 from abc import ABC, abstractmethod
+import cv2
+import keyboard
+from mediapipe.python.solutions import face_mesh as mpFaceMesh
 import numpy as np
 import triangles
 import utils
-import cv2
-import keyboard
-from mediapipe.python.solutions import (
-    drawing_utils as mpDraw,
-    face_mesh as mpFaceMesh,
-    selfie_segmentation as mpSelfieSeg,
-)
 import triangulation_media_pipe as tmp
 from imagetools import Image
 from noise import generate_perlin_noise_2d
@@ -16,7 +12,7 @@ from noise import generate_perlin_noise_2d
 
 class Effect(ABC):
     def __init__(self) -> None:
-        self.slider_value = 0
+        self.intensity = 0
         self.reset_flag: bool = False
 
     @abstractmethod
@@ -24,19 +20,19 @@ class Effect(ABC):
         """Applies the effect to the Image, changing its contents"""
         pass
 
-    def set_slider_value(self, value) -> None:
-        self.slider_value = value
+    def set_intensity(self, value) -> None:
+        self.intensity = value
 
     def alpha_blend_value(self) -> None:
-        return self.slider_value / 10
+        return self.intensity / 10
 
     def alpha_blend(self, new_img: Image, old_image: Image) -> None:
         """blends old_image into new_image with self.alpha_blend_value()"""
         new_img.change_image(
             cv2.addWeighted(
-                old_image._raw,
+                old_image.raw,
                 1 - self.alpha_blend_value(),
-                new_img._raw,
+                new_img.raw,
                 self.alpha_blend_value(),
                 0,
             )
@@ -55,7 +51,7 @@ class EyeEffect(Effect, ABC):
             utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
             utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
         ]
-        self.slider_value = 1
+        self.intensity = 1
 
     def apply(self, image: Image) -> None:
 
@@ -63,21 +59,20 @@ class EyeEffect(Effect, ABC):
             self.eye_triangles = []
 
         if not image.landmarks:
-            return image
+            return
 
         if not self.eye_triangles:
             self.eye_triangles.append(
-                triangles.getTriangleIndices(image, mpFaceMesh.FACEMESH_LEFT_EYE)
+                triangles.get_triangle_indices(image, mpFaceMesh.FACEMESH_LEFT_EYE)
             )
             self.eye_triangles.append(
-                triangles.getTriangleIndices(image, mpFaceMesh.FACEMESH_RIGHT_EYE)
+                triangles.get_triangle_indices(image, mpFaceMesh.FACEMESH_RIGHT_EYE)
             )
-
-        self.before_swap(image)
 
         if self.is_deactivated():
             return
 
+        self.before_swap(image)
         self.swap(image)
         self.reset_flag = False
 
@@ -87,7 +82,7 @@ class EyeEffect(Effect, ABC):
     def swap(self, image: Image) -> None:
         swap_img = self.get_swap_image()
         image.change_image(
-            triangles.insertTriangles(
+            triangles.insert_triangles(
                 image, swap_img, self.eye_triangles[0], self.eye_points[0]
             )
         )
@@ -114,10 +109,10 @@ class EyeFreezer(EyeEffect):
 
     def swap(self, image: Image) -> None:
         super().swap(image)
-        if self.slider_value == 2:
+        if self.intensity == 2:
             swap_img = self.get_swap_image()
             image.change_image(
-                triangles.insertTriangles(
+                triangles.insert_triangles(
                     image, swap_img, self.eye_triangles[1], self.eye_points[1]
                 )
             )
@@ -126,29 +121,29 @@ class EyeFreezer(EyeEffect):
         return self.swap_image
 
     def is_deactivated(self) -> bool:
-        return self.slider_value == 0
+        return self.intensity == 0
 
 
 class LazyEye(EyeEffect):
     def __init__(self) -> None:
         super().__init__()
         self.images = []
-        self.slider_value = 5
+        self.intensity = 5
 
     def before_swap(self, image: Image) -> None:
         if self.reset_flag:
             self.images = []
-        if len(self.images) < self.slider_value:
+        if len(self.images) < self.intensity:
             # Add an additional image to the queue to make it longer
             self.images.append(image.copy())
         self.images.append(image.copy())
 
     def is_deactivated(self) -> bool:
-        return self.slider_value == 0 or len(self.images) == 0
+        return self.intensity == 0 and len(self.images) == 0
 
     def get_swap_image(self) -> Image:
         image = self.images.pop(0)
-        if len(self.images) > self.slider_value:
+        if len(self.images) > self.intensity:
             # Remove an additional image from the queue to make it shorter
             image = self.images.pop(0)
         return image
@@ -158,11 +153,11 @@ class FaceSwap(Effect):
     def __init__(self) -> None:
         super().__init__()
         self.last_image: Image = None
-        self.swapImg: Image = None
-        self.slider_value = 10
+        self.swap_img: Image = None
+        self.intensity = 10
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
-        self.leaveOutPoints = [
+        self.leave_out_points = [
             utils.distinct_indices(mpFaceMesh.FACEMESH_LEFT_EYE),
             utils.distinct_indices(mpFaceMesh.FACEMESH_RIGHT_EYE),
         ]
@@ -172,7 +167,7 @@ class FaceSwap(Effect):
         self.last_image = image.copy()
         if keyboard.is_pressed("s"):
             self.change_swap_image()
-        if not image.landmarks or not self.swapImg:
+        if not image.landmarks or not self.swap_img:
             return
         self.swap_into(image)
         self.alpha_blend(image, old_image)
@@ -180,20 +175,20 @@ class FaceSwap(Effect):
     def swap_into(self, image: Image) -> None:
         """inserts the contents of self.swapImg into the image"""
         image.change_image(
-            triangles.insertTriangles(
+            triangles.insert_triangles(
                 image,
-                self.swapImg,
+                self.swap_img,
                 self.triangles,
                 self.points,
-                self.leaveOutPoints,
-                withSeamlessClone=True,
+                self.leave_out_points,
+                with_seamless_clone=True,
             )
         )
 
     def change_swap_image(self) -> None:
         if not self.last_image.landmarks:
             return
-        self.swapImg = self.last_image
+        self.swap_img = self.last_image
 
 
 class FaceSymmetry(Effect):
@@ -202,7 +197,7 @@ class FaceSymmetry(Effect):
         self.triangles = tmp.TRIANGULATION_NESTED
         self.points = utils.distinct_indices(tmp.TRIANGULATION_NESTED)
         self.flipped = None
-        self.slider_value = 10
+        self.intensity = 10
 
     def apply(self, image: Image) -> None:
         if not image.landmarks:
@@ -212,8 +207,12 @@ class FaceSymmetry(Effect):
             return
         old_image = image.copy()
         image.change_image(
-            triangles.insertTriangles(
-                image, self.flipped, self.triangles, self.points, withSeamlessClone=True
+            triangles.insert_triangles(
+                image,
+                self.flipped,
+                self.triangles,
+                self.points,
+                with_seamless_clone=True,
             )
         )
         self.alpha_blend(image, old_image)
@@ -226,14 +225,14 @@ class FaceSymmetry(Effect):
 
 
 class FaceFilter(Effect):
-    def __init__(self, mode=3, bilateralFilter=True) -> None:
+    def __init__(self, mode=3, bilateral_filter=True) -> None:
         super().__init__()
         self.mode = mode
-        if bilateralFilter:
-            self.slider_value = 30
+        if bilateral_filter:
+            self.intensity = 30
         else:
-            self.slider_value = 3
-        self.bilateralFilter = bilateralFilter
+            self.intensity = 3
+        self.bilateral_filter = bilateral_filter
 
     def filter_face(self, image: Image) -> None:
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
@@ -248,12 +247,10 @@ class FaceFilter(Effect):
         image.filter_polygon(triangle)
 
     def filter_image(self, image: Image) -> None:
-        if self.bilateralFilter:
-            image.change_image(utils.cudaBilateralFilter(image._raw, self.slider_value))
+        if self.bilateral_filter:
+            image.change_image(utils.cuda_bilateral_filter(image.raw, self.intensity))
         else:
-            image.change_image(
-                utils.cudaMorphologyFilter(image._raw, self.slider_value)
-            )
+            image.change_image(utils.cuda_morphology_filter(image.raw, self.intensity))
 
     def apply(self, image: Image) -> None:
         {
@@ -267,7 +264,7 @@ class FaceFilter(Effect):
 class NoiseFilter(Effect):
     def __init__(self, mode=0, precomputed=True) -> None:
         super().__init__()
-        self.slider_value = 0
+        self.intensity = 0
         self.mode = mode
         self.precomputed = precomputed
         self.last_noise_index = 0
@@ -276,12 +273,12 @@ class NoiseFilter(Effect):
     def perlin_noise(self, image: Image) -> None:
         old_image = image.copy()
         if self.precomputed:
-            perlin_noise = self.load_noise(image._raw.shape[0], image._raw.shape[1])
+            perlin_noise = self.load_noise(image.raw.shape[0], image.raw.shape[1])
         else:
             perlin_noise = generate_perlin_noise_2d(
-                (image._raw.shape[0], image._raw.shape[1]), (1, 2)
+                (image.raw.shape[0], image.raw.shape[1]), (1, 2)
             )
-        hsv = cv2.cvtColor(image._raw, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(image.raw, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         v = np.maximum(v, perlin_noise)
         hsv_new = cv2.merge([h, s, v])
@@ -300,25 +297,23 @@ class NoiseFilter(Effect):
 
     def basic_noise(self, image: Image) -> None:
         old_image = image.copy()
-        image.change_image(utils.noiseFilter(image._raw))
+        image.change_image(utils.noise_filter(image.raw))
         self.alpha_blend(image, old_image)
 
     def apply(self, image: Image) -> None:
-        return {0: self.basic_noise, 1: self.perlin_noise,}[
-            self.mode
-        ](image)
+        return {0: self.basic_noise, 1: self.perlin_noise}[self.mode](image)
 
     def alpha_blend_value(self) -> float:
-        return self.slider_value / 100
+        return self.intensity / 100
 
 
 class HueShift(Effect):
     def __init__(self) -> None:
         super().__init__()
-        self.slider_value = 60
+        self.intensity = 60
 
     def apply(self, image: Image) -> None:
-        raw = image._raw
+        raw = image.raw
 
         # converting image into LAB and calculate the average color of part of the face
         raw_lab = cv2.cvtColor(raw, cv2.COLOR_BGR2LAB)
@@ -339,7 +334,7 @@ class HueShift(Effect):
         # define the effect to be applied
         shifted = cv2.cvtColor(raw, cv2.COLOR_BGR2HSV)
         shifted[:, :, 0] = np.uint8(
-            np.mod(np.int32(shifted[:, :, 0]) + self.slider_value, 180)
+            np.mod(np.int32(shifted[:, :, 0]) + self.intensity, 180)
         )
         shifted = cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
 
@@ -349,49 +344,51 @@ class HueShift(Effect):
 
 
 class CheeksFilter(Effect):
-    def __init__(self, withCuda=True) -> None:
+    def __init__(self, with_cuda=True) -> None:
         super().__init__()
         # left and right cheek
         self.polygon_indices = [
             [111, 100, 207, 147, 123],
             [346, 347, 329, 423, 376, 427],
         ]
-        self.withCuda = withCuda
-        self.slider_value = 10
+        self.with_cuda = with_cuda
+        self.intensity = 10
 
     def apply(self, image: Image) -> None:
-        shifted = self.hueShift(image._raw)
+        shifted = self.hue_shift(image.raw)
         if not image.landmarks:
             return
 
-        mask = utils.getBlurredMask(
-            image._raw.shape, self.denormalized_polygons(image), self.withCuda
+        mask = utils.get_blurred_mask(
+            image.raw.shape, self.denormalized_polygons(image), self.with_cuda
         )
 
-        image.change_image(np.uint8(shifted * mask + image._raw * (1 - mask)))
+        image.change_image(np.uint8(shifted * mask + image.raw * (1 - mask)))
 
     def hue_difference(self) -> int:
-        return 180 - self.slider_value
+        return 180 - self.intensity
 
-    def hueShift(self, image_bgr: np.ndarray) -> np.ndarray:
-        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(hsv)
-        h_new = np.mod(h + self.hue_difference(), 180).astype(np.uint8)
-        hsv_new = cv2.merge([h_new, s, v])
-        return cv2.cvtColor(hsv_new, cv2.COLOR_HSV2BGR)
+    def hue_shift(self, image_bgr: np.ndarray) -> np.ndarray:
+        shifted = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        shifted[:, :, 0] = np.uint8(
+            np.mod(np.int32(shifted[:, :, 0]) + self.hue_difference(), 180)
+        )
+        return cv2.cvtColor(shifted, cv2.COLOR_HSV2BGR)
 
     def denormalized_polygons(self, image: Image):
         return image.get_denormalized_landmarks_nested(self.polygon_indices)
 
 
 class DebuggingFilter(Effect):
-    def __init__(self, mode=1) -> None:
+    """Highlights individual landmarks and prints their indices."""
+
+    def __init__(self) -> None:
         super().__init__()
         self.index = 0
         self.landmarks_indices = None
 
     def apply(self, image: Image) -> None:
-        image.drawLandmarks()
+        image.draw_landmarks()
         landmarks = image.landmarks_denormalized[0]
         if not self.landmarks_indices:
             self.landmarks_indices = list(enumerate(landmarks))
@@ -400,7 +397,7 @@ class DebuggingFilter(Effect):
         if keyboard.is_pressed(" ") and self.index < len(landmarks):
             self.index += 1
         cv2.circle(
-            image._raw, landmarks[self.landmarks_indices[self.index]], 0, (0, 0, 255), 2
+            image.raw, landmarks[self.landmarks_indices[self.index]], 0, (0, 0, 255), 2
         )
         if keyboard.is_pressed("i"):
             print(f"Index: {self.landmarks_indices[self.index]}")
