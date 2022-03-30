@@ -12,7 +12,7 @@ You need to install following python packages:
   - `pip install PyQt5`
   - or `conda install pyqt`
 - Mediapipe
-  - `mediapipe pip install mediapipe`
+  - `pip install mediapipe`
 - keyboard
   - `pip install keyboard`
   - or `conda install -c conda-forge keyboard`
