@@ -91,7 +91,8 @@ class Image:
             if with_cuda:
                 return utils.cuda_morphology_filter(self.raw, intensity)
             else:
-                return self.raw
+                kernel = np.ones((intensity,intensity),np.uint8)
+                return cv2.morphologyEx(self.raw, cv2.MORPH_ERODE, kernel, self.raw)
 
     def get_mask(self, polygon):
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
