@@ -81,6 +81,7 @@ class Image:
         ]
 
     def blurred(self, method: str, intensity, with_cuda=True) -> np.ndarray:
+        """Returns a blurred copy of the image. Method must be either "bilateral" or "morphology"."""
         assert method in ["bilateral", "morphology"]
         if method == "bilateral":
             if with_cuda:
@@ -95,6 +96,7 @@ class Image:
                 return cv2.morphologyEx(self.raw, cv2.MORPH_ERODE, kernel, self.raw)
 
     def get_mask(self, polygon):
+        """Get a mask for the (indexed) polygon in the shape of the image."""
         polygon_denormalized = self.get_denormalized_landmarks(polygon)
         return utils.get_mask(self.raw.shape, polygon_denormalized)
 
