@@ -11,6 +11,8 @@ from noise import generate_perlin_noise_2d
 
 
 class Effect(ABC):
+    """Abstract base class for all effects."""
+
     def __init__(self) -> None:
         self.intensity = 0
         self.reset_flag: bool = False
@@ -43,6 +45,8 @@ class Effect(ABC):
 
 
 class EyeEffect(Effect, ABC):
+    """Abstract base class for all effects that swap eyes of other images into the image."""
+
     def __init__(self) -> None:
         super().__init__()
         self.landmarks = []
@@ -96,6 +100,8 @@ class EyeEffect(Effect, ABC):
 
 
 class EyeFreezer(EyeEffect):
+    """Captures one image on activation and swaps it into the image, causing the eye movement to be frozen."""
+
     def __init__(self) -> None:
         super().__init__()
         self.swap_image = None
@@ -125,6 +131,9 @@ class EyeFreezer(EyeEffect):
 
 
 class LazyEye(EyeEffect):
+    """Maintains a short queue of the last received images and swaps
+    the oldest image into the face, causing the movement of one eye to be delayed."""
+
     def __init__(self) -> None:
         super().__init__()
         self.images = []
@@ -150,6 +159,8 @@ class LazyEye(EyeEffect):
 
 
 class FaceSwap(Effect):
+    """Swaps a previously captured image into the image."""
+
     def __init__(self) -> None:
         super().__init__()
         self.last_image: Image = None
@@ -192,6 +203,8 @@ class FaceSwap(Effect):
 
 
 class FaceSymmetry(Effect):
+    """Blends a flipped version of the face into itself, causing the face to look more symmetrical."""
+
     def __init__(self) -> None:
         super().__init__()
         self.triangles = tmp.TRIANGULATION_NESTED
@@ -225,43 +238,53 @@ class FaceSymmetry(Effect):
 
 
 class FaceFilter(Effect):
-    def __init__(self, mode=3, bilateral_filter=True) -> None:
+    """according to configuration applies a bilateral or morphology filter to a region of the image."""
+
+    def __init__(self, method: str, region="image", with_cuda=False) -> None:
         super().__init__()
-        self.mode = mode
-        if bilateral_filter:
+
+        self.method = method
+        self.region = region
+        self.with_cuda = with_cuda
+
+        if method == "bilateral":
             self.intensity = 30
-        else:
+        elif method == "morphology":
             self.intensity = 3
-        self.bilateral_filter = bilateral_filter
 
-    def filter_face(self, image: Image) -> None:
+    def face_mask(self, image: Image) -> np.ndarray:
         polygon = utils.find_polygon(mpFaceMesh.FACEMESH_FACE_OVAL)
-        image.filter_polygon(polygon)
+        return image.get_mask(polygon)
 
-    def filter_person(self, image: Image) -> None:
-        image.filter_segmentation()
+    def person_mask(self, image: Image) -> np.ndarray:
+        return (
+            np.stack((image.selfie_seg_results.segmentation_mask,) * 3, axis=-1) > 0.1
+        )
 
-    def filter_triangle(self, image: Image) -> None:
+    def triangle_mask(self, image: Image) -> np.ndarray:
         indices = utils.distinct_indices(mpFaceMesh.FACEMESH_TESSELATION)
         triangle = [indices[50], indices[260], indices[150]]
-        image.filter_polygon(triangle)
+        return image.get_mask(triangle)
 
-    def filter_image(self, image: Image) -> None:
-        if self.bilateral_filter:
-            image.change_image(utils.cuda_bilateral_filter(image.raw, self.intensity))
-        else:
-            image.change_image(utils.cuda_morphology_filter(image.raw, self.intensity))
+    def image_mask(self, image: Image) -> np.ndarray:
+        return np.ones_like(image)
 
     def apply(self, image: Image) -> None:
-        {
-            0: self.filter_face,
-            1: self.filter_person,
-            2: self.filter_triangle,
-            3: self.filter_image,
-        }[self.mode](image)
+        blurred = image.blurred(self.method, self.intensity, self.with_cuda)
+
+        mask = {
+            "face": self.face_mask,
+            "person": self.person_mask,
+            "triangle": self.triangle_mask,
+            "image": self.image_mask,
+        }[self.region](image)
+
+        image.change_image(np.where(mask, blurred, image.raw))
 
 
 class NoiseFilter(Effect):
+    """Adds noise to the image."""
+
     def __init__(self, mode=0, precomputed=True) -> None:
         super().__init__()
         self.intensity = 0
@@ -308,6 +331,8 @@ class NoiseFilter(Effect):
 
 
 class HueShift(Effect):
+    """Shifts the hue of skin colored regions."""
+
     def __init__(self) -> None:
         super().__init__()
         self.intensity = 60
@@ -344,6 +369,8 @@ class HueShift(Effect):
 
 
 class CheeksFilter(Effect):
+    """Shifts the hue around the cheeks."""
+
     def __init__(self, with_cuda=True) -> None:
         super().__init__()
         # left and right cheek

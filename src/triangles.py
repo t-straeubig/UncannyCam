@@ -10,10 +10,10 @@ def insert_triangles(
     point_indices,
     leave_out_points=None,
     with_seamless_clone=False,
-):
+) -> np.ndarray:
     """Moves the triangles specified by triangleIndices from swapImg to the coresponding places in img"""
-    swap_triangles = get_triangles(swap_img, triangle_indices)
-    triangles = get_triangles(img, triangle_indices)
+    swap_triangles = swap_img.get_denormalized_landmarks_nested(triangle_indices)
+    triangles = img.get_denormalized_landmarks_nested(triangle_indices)
 
     # new_face is the transformed part of the face with a black background
     new_face = np.zeros_like(img.raw)
@@ -31,7 +31,7 @@ def insert_triangles(
 
 def insert_new_face(
     img, new_face, point_list, leave_out_points=None, with_seamless_clone=False
-):
+) -> np.ndarray:
     convexhull = cv2.convexHull(np.array(point_list, np.int32))
     head_mask = cv2.cvtColor(np.zeros_like(img), cv2.COLOR_BGR2GRAY)
     face_mask = cv2.fillConvexPoly(head_mask, convexhull, 255)
@@ -65,9 +65,8 @@ def insert_new_face(
     )
 
 
-# replace all new triangles with old triangles
-def displace(dst_img, src_img, dest_triangle, src_triangle):
-    """Move a triangle of img_swap specified by triangleSwap to a triangle of img specified by triangle"""
+def displace(dest_img, src_img, dest_triangle, src_triangle) -> np.ndarray:
+    """Move a triangle of src_img specified by src_triangle to a triangle of dest_img specified by dest_triangle"""
     x, y, w, h = cv2.boundingRect(src_triangle)
     cropped_src_img = src_img[y : y + h, x : x + w]
     cropped_src_triangle = np.array(
@@ -89,12 +88,12 @@ def displace(dst_img, src_img, dest_triangle, src_triangle):
         np.float32,
     )
 
-    if x < 0 or x + w >= dst_img.shape[1] or y < 0 or y + h >= dst_img.shape[0]:
-        return dst_img
+    if x < 0 or x + w >= dest_img.shape[1] or y < 0 or y + h >= dest_img.shape[0]:
+        return dest_img
 
     transform = cv2.getAffineTransform(cropped_src_triangle, cropped_dest_triangle)
     if cv2.determinant(transform[0:2, 0:2]) < 0:
-        return dst_img
+        return dest_img
 
     warped_src = cv2.warpAffine(
         cropped_src_img, transform, (w, h), flags=cv2.INTER_NEAREST
@@ -104,19 +103,10 @@ def displace(dst_img, src_img, dest_triangle, src_triangle):
     cv2.fillConvexPoly(mask, np.int32(cropped_dest_triangle), (1, 1, 1), 16, 0)
     warped_src = warped_src * mask
 
-    dst_img[y : y + h, x : x + w] = (
-        dst_img[y : y + h, x : x + w] * ((1.0, 1.0, 1.0) - mask) + warped_src
+    dest_img[y : y + h, x : x + w] = (
+        dest_img[y : y + h, x : x + w] * ((1.0, 1.0, 1.0) - mask) + warped_src
     )
-    return dst_img
-
-
-# get triangles as points given the indices of the triangulation
-def get_triangles(image, triangles):
-    out_triangles = []
-    for face_id in range(len(image.landmarks_denormalized)):
-        for triangle in triangles:
-            out_triangles.append(image.get_denormalized_landmarks(triangle, face_id))
-    return out_triangles
+    return dest_img
 
 
 # get indices of the triangulation
